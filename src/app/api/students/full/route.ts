@@ -179,22 +179,52 @@ export async function POST(req: NextRequest) {
     try {
       await connection.beginTransaction();
       
-      // Insert person - let database handle AUTO_INCREMENT
-      const [personResult]: any = await connection.execute(
-        'INSERT INTO people (school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
-      );
-      const newPersonId = personResult.insertId;
+      // Insert person - let database handle AUTO_INCREMENT if available
+      let newPersonId: number;
+      try {
+        const [personResult]: any = await connection.execute(
+          'INSERT INTO people (school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
+        );
+        newPersonId = personResult.insertId;
+      } catch (personErr: any) {
+        // If AUTO_INCREMENT fails, try manual ID
+        if (personErr.message?.includes('doesn\'t have a default value')) {
+          const [maxPersonId]: any = await connection.execute('SELECT MAX(id) as max_id FROM people');
+          newPersonId = (maxPersonId[0]?.max_id || 0) + 1;
+          await connection.execute(
+            'INSERT INTO people (id, school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [newPersonId, 1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
+          );
+        } else {
+          throw personErr;
+        }
+      }
       
       // Generate admission number if not provided
       const admission_no = body.admission_no || `XHN/${newPersonId.toString().padStart(4, '0')}/${new Date().getFullYear()}`;
       
-      // Insert student - let database handle AUTO_INCREMENT
-      const [studentResult]: any = await connection.execute(
-        'INSERT INTO students (school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [1, newPersonId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
-      );
-      const newStudentId = studentResult.insertId;
+      // Insert student - let database handle AUTO_INCREMENT if available
+      let newStudentId: number;
+      try {
+        const [studentResult]: any = await connection.execute(
+          'INSERT INTO students (school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [1, newPersonId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
+        );
+        newStudentId = studentResult.insertId;
+      } catch (studentErr: any) {
+        // If AUTO_INCREMENT fails, try manual ID
+        if (studentErr.message?.includes('doesn\'t have a default value')) {
+          const [maxStudentId]: any = await connection.execute('SELECT MAX(id) as max_id FROM students');
+          newStudentId = (maxStudentId[0]?.max_id || 0) + 1;
+          await connection.execute(
+            'INSERT INTO students (id, school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [newStudentId, 1, newPersonId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
+          );
+        } else {
+          throw studentErr;
+        }
+      }
       
       // Insert enrollment
       await connection.execute(
