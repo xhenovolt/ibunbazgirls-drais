@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import { Dialog, Transition, Listbox } from '@headlessui/react';
 import { Plus, Check, ChevronsUpDown, X } from 'lucide-react';
 
-const API_BASE=process.env.NEXT_PUBLIC_PHP_API_BASE||'http://localhost/drais/api';
+const API_BASE=process.env.NEXT_PUBLIC_API_URL || '';
 const fetcher=(u:string)=>fetch(u).then(r=>r.json());
 
 interface ClassRec { id:number; name:string; }
@@ -13,8 +13,8 @@ interface YearRec { id:number; name:string; }
 const fieldBase="w-full px-3 py-2 rounded-xl bg-white/70 dark:bg-slate-900/60 border border-white/40 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-400 text-sm placeholder-gray-400 dark:placeholder-gray-500 backdrop-blur";
 
 export default function AdmitStudentPage(){
-  const classesSWR=useSWR(`${API_BASE}/classes.php`,fetcher);
-  const yearsSWR=useSWR(`${API_BASE}/academic_years.php`,fetcher);
+  const classesSWR=useSWR(`${API_BASE}/api/classes`,fetcher);
+  const yearsSWR=useSWR(`${API_BASE}/api/academic_years`,fetcher);
   const classes:ClassRec[]=classesSWR.data?.data||[];
   const years:YearRec[]=yearsSWR.data?.data||[];
   const [open,setOpen]=useState(true);
@@ -27,8 +27,49 @@ export default function AdmitStudentPage(){
   const [theologyClass,setTheologyClass]=useState<ClassRec|undefined>();
   const [loading,setLoading]=useState(false);
   const [result,setResult]=useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const submit=async(e:React.FormEvent)=>{ e.preventDefault(); if(!secularClass||!theologyClass||!acyear) return; setLoading(true); setResult(null); try { const r= await fetch(`${API_BASE}/admit_student.php`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ first_name:first,last_name:last,gender,date_of_birth:dob,secular_class_id:secularClass.id,theology_class_id:theologyClass.id,academic_year_id:acyear })}); const j=await r.json(); setResult(j); if(r.ok){ setFirst(''); setLast(''); setDob(''); } } finally { setLoading(false);} };
+  const submit=async(e:React.FormEvent)=>{ 
+    e.preventDefault(); 
+    if(!secularClass||!theologyClass||!acyear) return; 
+    setLoading(true); 
+    setResult(null);
+    setError(null);
+    
+    try { 
+      // Use Next.js API endpoint
+      const formData = new FormData();
+      formData.append('first_name', first);
+      formData.append('last_name', last);
+      formData.append('gender', gender);
+      formData.append('date_of_birth', dob);
+      formData.append('secular_class_id', secularClass.id.toString());
+      formData.append('theology_class_id', theologyClass.id.toString());
+      formData.append('academic_year_id', acyear.toString());
+      
+      const r = await fetch(`${API_BASE}/api/students/full`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const j = await r.json();
+      
+      if (r.ok) {
+        setResult(j);
+        if (j.success) {
+          setFirst('');
+          setLast('');
+          setDob('');
+        }
+      } else {
+        setError(j.error || 'Failed to admit student');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="p-6">
@@ -96,7 +137,12 @@ const AdmissionModal:React.FC<any> = ({open,onClose,first,last,gender,dob,setFir
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-4 pt-2">
-                  <div className="text-xs text-slate-500 dark:text-slate-400 min-h-[1.25rem]">{result && (result.error? <span className="text-red-600">{result.error}</span>: <span className="text-green-600">Admitted #{result.admission_no}</span>)}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 min-h-[1.25rem]">
+                    {error && <span className="text-red-600">{error}</span>}
+                    {result && !error && (result.error ? 
+                      <span className="text-red-600">{result.error}</span>: 
+                      <span className="text-green-600">Admitted #{result.admission_no || result.student_id}</span>)}
+                  </div>
                   <div className="flex gap-3">
                     <button type="button" onClick={onClose} className="px-5 py-2 rounded-xl text-sm font-medium bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20">Cancel</button>
                     <button disabled={loading||!secularClass||!theologyClass||!acyear} type="submit" className="relative px-6 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-pink-600 shadow disabled:opacity-40 disabled:cursor-not-allowed">
