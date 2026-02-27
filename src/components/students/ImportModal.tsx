@@ -78,9 +78,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   };
 
   const downloadTemplate = () => {
-    const csvContent = `First Name,Last Name,Other Name,Gender,Date of Birth,Phone,Email,Address,Class,Stream,District,Village,Status
-John,Doe,Middle,M,1990-01-01,+1234567890,john@example.com,123 Main St,Class 1,Stream A,District 1,Village 1,active
-Jane,Smith,,F,1991-02-01,+1234567891,jane@example.com,456 Oak Ave,Class 2,Stream B,District 2,Village 2,active`;
+    const csvContent = `First Name,Last Name,Other Name,Gender,Date of Birth,Phone,Email,Address,Class,Stream,Village,Status
+John,Doe,Middle,M,1990-01-01,+256700000000,john@example.com,123 Main St,Form 1,A,Kampala,active
+Jane,Smith,,F,1991-02-01,+256700000001,jane@example.com,456 Oak Ave,Form 2,B,Entebbe,active
+Alice,Johnson,,F,2005-03-15,+256700000002,,Hoima District,Form 3,A,Hoima,active`;
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -155,11 +156,11 @@ Jane,Smith,,F,1991-02-01,+1234567891,jane@example.com,456 Oak Ave,Class 2,Stream
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                       <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Import Instructions</h3>
                       <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                        <li>• Supported formats: Excel (.xlsx, .xls) and CSV files</li>
-                        <li>• Required columns: First Name, Last Name</li>
-                        <li>• Optional columns: Other Name, Gender (M/F), Date of Birth (YYYY-MM-DD), Phone, Email, Address, Class, Stream, District, Village, Status</li>
-                        <li>• Gender values: M, F, male, female (case insensitive)</li>
-                        <li>• Status values: active, suspended, on_leave, dropped_out, at_home, sick, expelled</li>
+                        <li>✓ <strong>Supported formats:</strong> Excel (.xlsx, .xls) and CSV files</li>
+                        <li>✓ <strong>Required columns:</strong> First Name, Last Name</li>
+                        <li>✓ <strong>Optional columns:</strong> Other Name, Gender (M/F), Date of Birth (YYYY-MM-DD), Phone, Email, Address, Class, Stream, Village, Status</li>
+                        <li>✓ <strong>Simple import:</strong> Just provide first and last names to auto-admit students</li>
+                        <li>✓ <strong>Status values:</strong> active, suspended, on_leave, dropped_out, at_home, sick, expelled</li>
                       </ul>
                     </div>
 

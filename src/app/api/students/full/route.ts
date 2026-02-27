@@ -179,52 +179,22 @@ export async function POST(req: NextRequest) {
     try {
       await connection.beginTransaction();
       
-      // Insert person - let database handle AUTO_INCREMENT if available
-      let newPersonId: number;
-      try {
-        const [personResult]: any = await connection.execute(
-          'INSERT INTO people (school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
-        );
-        newPersonId = personResult.insertId;
-      } catch (personErr: any) {
-        // If AUTO_INCREMENT fails, try manual ID
-        if (personErr.message?.includes('doesn\'t have a default value')) {
-          const [maxPersonId]: any = await connection.execute('SELECT MAX(id) as max_id FROM people');
-          newPersonId = (maxPersonId[0]?.max_id || 0) + 1;
-          await connection.execute(
-            'INSERT INTO people (id, school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [newPersonId, 1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
-          );
-        } else {
-          throw personErr;
-        }
-      }
+      // Insert person
+      const [personResult]: any = await connection.execute(
+        'INSERT INTO people (school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
+      );
+      const newPersonId = personResult.insertId;
       
       // Generate admission number if not provided
       const admission_no = body.admission_no || `XHN/${newPersonId.toString().padStart(4, '0')}/${new Date().getFullYear()}`;
       
-      // Insert student - let database handle AUTO_INCREMENT if available
-      let newStudentId: number;
-      try {
-        const [studentResult]: any = await connection.execute(
-          'INSERT INTO students (school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [1, newPersonId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
-        );
-        newStudentId = studentResult.insertId;
-      } catch (studentErr: any) {
-        // If AUTO_INCREMENT fails, try manual ID
-        if (studentErr.message?.includes('doesn\'t have a default value')) {
-          const [maxStudentId]: any = await connection.execute('SELECT MAX(id) as max_id FROM students');
-          newStudentId = (maxStudentId[0]?.max_id || 0) + 1;
-          await connection.execute(
-            'INSERT INTO students (id, school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [newStudentId, 1, newPersonId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
-          );
-        } else {
-          throw studentErr;
-        }
-      }
+      // Insert student
+      const [studentResult]: any = await connection.execute(
+        'INSERT INTO students (school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [1, newPersonId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
+      );
+      const newStudentId = studentResult.insertId;
       
       // Insert enrollment
       await connection.execute(
@@ -247,22 +217,18 @@ export async function POST(req: NextRequest) {
       if (Array.isArray(body.contacts)) {
         for (const c of body.contacts) {
           Object.keys(c).forEach(k => { c[k] = safe(c[k]); });
-          // Get next contact_id
-          const [maxContactId]: any = await connection.execute('SELECT MAX(id) as max_id FROM contacts');
-          const newContactId = (maxContactId[0]?.max_id || 0) + 1;
           
-          await connection.execute(
-            'INSERT INTO contacts (id, school_id, person_id, contact_type, occupation, alive_status, date_of_death) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [newContactId, 1, newPersonId, safe(c.contact_type), safe(c.occupation), safe(c.alive_status), safe(c.date_of_death)]
+          // Insert contact with AUTO_INCREMENT
+          const [contactResult]: any = await connection.execute(
+            'INSERT INTO contacts (school_id, person_id, contact_type, occupation, alive_status, date_of_death) VALUES (?, ?, ?, ?, ?, ?)',
+            [1, newPersonId, safe(c.contact_type), safe(c.occupation), safe(c.alive_status), safe(c.date_of_death)]
           );
+          const newContactId = contactResult.insertId;
           
-          // Get next student_contact_id
-          const [maxSCId]: any = await connection.execute('SELECT MAX(id) as max_id FROM student_contacts');
-          const newSCId = (maxSCId[0]?.max_id || 0) + 1;
-          
+          // Insert student_contact with AUTO_INCREMENT
           await connection.execute(
-            'INSERT INTO student_contacts (id, student_id, contact_id, relationship, is_primary) VALUES (?, ?, ?, ?, ?)',
-            [newSCId, newStudentId, newContactId, safe(c.relationship), safe(c.is_primary)]
+            'INSERT INTO student_contacts (student_id, contact_id, relationship, is_primary) VALUES (?, ?, ?, ?)',
+            [newStudentId, newContactId, safe(c.relationship), safe(c.is_primary)]
           );
         }
       }

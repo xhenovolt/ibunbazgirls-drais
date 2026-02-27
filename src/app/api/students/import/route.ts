@@ -2,20 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import * as XLSX from 'xlsx';
 
-interface ImportStudent {
-  first_name: string;
-  last_name: string;
-  other_name?: string;
-  gender?: string;
-  date_of_birth?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  class_name?: string;
-  stream_name?: string;
-  district_name?: string;
-  village_name?: string;
-  status?: string;
+function safe(v: any) { return (v === undefined || v === '' || v === null) ? null : v; }
+
+function parseCSV(csvContent: string): string[][] {
+  const lines = csvContent.trim().split('\n');
+  const rows: string[][] = [];
+  
+  for (const line of lines) {
+    const cells: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        cells.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    cells.push(current.trim());
+    rows.push(cells);
+  }
+  
+  return rows;
 }
 
 export async function POST(request: NextRequest) {
@@ -31,44 +51,29 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate file type
-    const allowedTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-      'application/vnd.ms-excel', // .xls
-      'text/csv' // .csv
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV files only.'
-      }, { status: 400 });
-    }
-
-    const buffer = await file.arrayBuffer();
-    let data: any[];
+    const buffer = Buffer.from(await file.arrayBuffer());
+    let rows: string[][] = [];
 
     try {
-      if (file.type === 'text/csv') {
-        // Handle CSV
-        const text = new TextDecoder().decode(buffer);
-        const lines = text.split('\n').filter(line => line.trim());
-        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-        
-        data = lines.slice(1).map(line => {
-          const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-          const obj: any = {};
-          headers.forEach((header, index) => {
-            obj[header] = values[index] || '';
-          });
-          return obj;
-        });
-      } else {
-        // Handle Excel
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        const csvContent = buffer.toString('utf-8');
+        rows = parseCSV(csvContent);
+      } else if (
+        file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        file.type === 'application/vnd.ms-excel' ||
+        file.name.endsWith('.xlsx') ||
+        file.name.endsWith('.xls')
+      ) {
         const workbook = XLSX.read(buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        data = XLSX.utils.sheet_to_json(worksheet);
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        rows = data as string[][];
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: 'Unsupported file format. Please use CSV or Excel files.'
+        }, { status: 400 });
       }
     } catch (parseError) {
       return NextResponse.json({
@@ -77,127 +82,159 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!data || data.length === 0) {
+    if (rows.length === 0) {
       return NextResponse.json({
         success: false,
         error: 'File is empty or contains no valid data'
       }, { status: 400 });
     }
 
+    const headers = (rows[0] || []).map(h => String(h || '').toLowerCase().trim());
+    const dataRows = rows.slice(1);
+
+    console.log('Headers found:', headers);
+    console.log('Data rows:', dataRows.length);
+
+    // Find column indices (case-insensitive)
+    const firstNameIdx = headers.findIndex(h => h.includes('first') && h.includes('name'));
+    const lastNameIdx = headers.findIndex(h => h.includes('last') && h.includes('name'));
+    const otherNameIdx = headers.findIndex(h => h.includes('other') && h.includes('name'));
+    const genderIdx = headers.findIndex(h => h === 'gender');
+    const dobIdx = headers.findIndex(h => h.includes('date') && h.includes('birth'));
+    const phoneIdx = headers.findIndex(h => h === 'phone');
+    const emailIdx = headers.findIndex(h => h === 'email');
+    const addressIdx = headers.findIndex(h => h === 'address');
+    const classIdx = headers.findIndex(h => h === 'class');
+    const streamIdx = headers.findIndex(h => h === 'stream');
+    const villageIdx = headers.findIndex(h => h === 'village');
+    const statusIdx = headers.findIndex(h => h === 'status');
+
+    console.log('Column indices:', {
+      firstNameIdx, lastNameIdx, otherNameIdx, genderIdx, dobIdx,
+      phoneIdx, emailIdx, addressIdx, classIdx, streamIdx, villageIdx, statusIdx
+    });
+
+    // Validate required columns
+    if (firstNameIdx === -1 || lastNameIdx === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required columns. Please ensure your file has "First Name" and "Last Name" columns.',
+        details: `Found columns: ${headers.join(', ')}`
+      }, { status: 400 });
+    }
+
     connection = await getConnection();
 
-    // Fetch existing classes and streams for validation
-    const [classes] = await connection.execute('SELECT id, name FROM classes');
-    const [streams] = await connection.execute('SELECT id, name FROM streams');
-    const [districts] = await connection.execute('SELECT id, name FROM districts');
-    const [villages] = await connection.execute('SELECT id, name FROM villages');
+    try {
+      // Fetch mapping data
+      const [classes]: any = await connection.execute('SELECT id, name FROM classes');
+      const [streams]: any = await connection.execute('SELECT id, name FROM streams');
+      const [villages]: any = await connection.execute('SELECT id, name FROM villages');
+      const [years]: any = await connection.execute('SELECT id FROM academic_years WHERE status = "active" LIMIT 1');
+      const [terms]: any = await connection.execute('SELECT id FROM terms WHERE status = "active" LIMIT 1');
 
-    const classMap = new Map((classes as any[]).map(c => [c.name.toLowerCase(), c.id]));
-    const streamMap = new Map((streams as any[]).map(s => [s.name.toLowerCase(), s.id]));
-    const districtMap = new Map((districts as any[]).map(d => [d.name.toLowerCase(), d.id]));
-    const villageMap = new Map((villages as any[]).map(v => [v.name.toLowerCase(), v.id]));
+      const classMap = new Map((classes || []).map((c: any) => [c.name.toLowerCase(), c.id]));
+      const streamMap = new Map((streams || []).map((s: any) => [s.name.toLowerCase(), s.id]));
+      const villageMap = new Map((villages || []).map((v: any) => [v.name.toLowerCase(), v.id]));
 
-    const results = {
-      total: data.length,
-      successful: 0,
-      failed: 0,
-      errors: [] as string[]
-    };
+      const yearId = years?.[0]?.id || null;
+      const termId = terms?.[0]?.id || null;
 
-    // Process each row
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      const rowNum = i + 2; // +2 because Excel starts at 1 and we skip header
+      const results = {
+        total: dataRows.length,
+        successful: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
 
-      try {
-        // Map different possible column names
-        const student: ImportStudent = {
-          first_name: row['First Name'] || row['first_name'] || row['firstname'] || '',
-          last_name: row['Last Name'] || row['last_name'] || row['lastname'] || '',
-          other_name: row['Other Name'] || row['other_name'] || row['othername'] || '',
-          gender: row['Gender'] || row['gender'] || '',
-          date_of_birth: row['Date of Birth'] || row['date_of_birth'] || row['dob'] || '',
-          phone: row['Phone'] || row['phone'] || row['contact'] || '',
-          email: row['Email'] || row['email'] || '',
-          address: row['Address'] || row['address'] || '',
-          class_name: row['Class'] || row['class_name'] || row['class'] || '',
-          stream_name: row['Stream'] || row['stream_name'] || row['stream'] || '',
-          district_name: row['District'] || row['district_name'] || row['district'] || '',
-          village_name: row['Village'] || row['village_name'] || row['village'] || '',
-          status: row['Status'] || row['status'] || 'active'
-        };
+      // Process each row
+      for (let rowIdx = 0; rowIdx < dataRows.length; rowIdx++) {
+        const row = dataRows[rowIdx];
+        const rowNum = rowIdx + 2;
 
-        // Validate required fields
-        if (!student.first_name || !student.last_name) {
-          results.errors.push(`Row ${rowNum}: First name and last name are required`);
-          results.failed++;
-          continue;
-        }
+        try {
+          const firstName = safe(String(row[firstNameIdx] || '').trim());
+          const lastName = safe(String(row[lastNameIdx] || '').trim());
 
-        // Validate and convert foreign keys
-        const class_id = student.class_name ? classMap.get(student.class_name.toLowerCase()) : null;
-        const stream_id = student.stream_name ? streamMap.get(student.stream_name.toLowerCase()) : null;
-        const district_id = student.district_name ? districtMap.get(student.district_name.toLowerCase()) : null;
-        const village_id = student.village_name ? villageMap.get(student.village_name.toLowerCase()) : null;
-
-        // Validate date format
-        let formattedDate = null;
-        if (student.date_of_birth) {
-          const date = new Date(student.date_of_birth);
-          if (isNaN(date.getTime())) {
-            results.errors.push(`Row ${rowNum}: Invalid date format for date of birth`);
+          if (!firstName || !lastName) {
+            results.errors.push(`Row ${rowNum}: First name and last name are required`);
             results.failed++;
             continue;
           }
-          formattedDate = date.toISOString().split('T')[0];
-        }
 
-        // Validate gender
-        if (student.gender && !['M', 'F', 'male', 'female'].includes(student.gender.toLowerCase())) {
-          results.errors.push(`Row ${rowNum}: Invalid gender value. Use M/F or male/female`);
+          await connection.beginTransaction();
+
+          try {
+            // Insert person
+            const [personResult]: any = await connection.execute(
+              'INSERT INTO people (school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [
+                1,
+                firstName,
+                lastName,
+                safe(String(row[otherNameIdx] || '').trim()),
+                safe(String(row[genderIdx] || '').trim()),
+                safe(String(row[dobIdx] || '').trim()),
+                safe(String(row[phoneIdx] || '').trim()),
+                safe(String(row[emailIdx] || '').trim()),
+                safe(String(row[addressIdx] || '').trim())
+              ]
+            );
+            const personId = personResult.insertId;
+
+            // Insert student
+            const admission_no = `XHN/${personId.toString().padStart(4, '0')}/${new Date().getFullYear()}`;
+            const [studentResult]: any = await connection.execute(
+              'INSERT INTO students (school_id, person_id, admission_no, village_id, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
+              [
+                1,
+                personId,
+                admission_no,
+                safe(villageMap.get(String(row[villageIdx] || '').toLowerCase())),
+                safe(String(row[statusIdx] || 'active').trim()),
+                `Bulk imported from file on ${new Date().toISOString()}`
+              ]
+            );
+            const studentId = studentResult.insertId;
+
+            // Insert enrollment if class is provided
+            if (classIdx !== -1 && row[classIdx]) {
+              const className = String(row[classIdx] || '').trim();
+              const classId = classMap.get(className.toLowerCase());
+
+              if (classId) {
+                const streamName = streamIdx !== -1 ? String(row[streamIdx] || '').trim() : null;
+                const streamId = streamName ? streamMap.get(streamName.toLowerCase()) : null;
+
+                await connection.execute(
+                  'INSERT INTO enrollments (student_id, class_id, stream_id, academic_year_id, term_id, status) VALUES (?, ?, ?, ?, ?, ?)',
+                  [studentId, classId, streamId || null, yearId, termId, 'active']
+                );
+              }
+            }
+
+            await connection.commit();
+            results.successful++;
+          } catch (innerErr: any) {
+            await connection.rollback();
+            throw innerErr;
+          }
+        } catch (rowError: any) {
+          console.error(`Error processing row ${rowNum}:`, rowError);
+          results.errors.push(`Row ${rowNum}: ${rowError.message || 'Unknown error'}`);
           results.failed++;
-          continue;
         }
-
-        const gender = student.gender ? (student.gender.toLowerCase().startsWith('m') ? 'M' : 'F') : null;
-
-        // Insert student
-        const [insertResult] = await connection.execute(`
-          INSERT INTO students (
-            first_name, last_name, other_name, gender, date_of_birth,
-            phone, email, address, class_id, stream_id, district_id, village_id,
-            status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-        `, [
-          student.first_name.trim(),
-          student.last_name.trim(),
-          student.other_name?.trim() || null,
-          gender,
-          formattedDate,
-          student.phone?.trim() || null,
-          student.email?.trim() || null,
-          student.address?.trim() || null,
-          class_id,
-          stream_id,
-          district_id,
-          village_id,
-          student.status || 'active'
-        ]);
-
-        results.successful++;
-
-      } catch (rowError: any) {
-        console.error(`Error processing row ${rowNum}:`, rowError);
-        results.errors.push(`Row ${rowNum}: ${rowError.message}`);
-        results.failed++;
       }
-    }
 
-    return NextResponse.json({
-      success: true,
-      message: `Import completed: ${results.successful} successful, ${results.failed} failed`,
-      data: results
-    });
+      return NextResponse.json({
+        success: true,
+        message: `Import completed: ${results.successful} successful, ${results.failed} failed`,
+        data: results
+      });
+    } catch (dbError: any) {
+      console.error('Database error:', dbError);
+      throw dbError;
+    }
 
   } catch (error: any) {
     console.error('Import error:', error);
