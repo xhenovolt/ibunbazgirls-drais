@@ -163,7 +163,7 @@ const ReportsPage = () => {
 
   // School info (static for all reports)
   const schoolInfo: SchoolInfo = {
-    name: 'EXCEL ISLAMIC NURSERY & PRIMARY SCHOOL',
+    name: 'Ibun Baz Girls Secondary School',
     address: 'Bugumba, Iganga Municipality',
     po_box: 'P.O. BOX, Bugumba, Iganga',
     logo_url: '/logo.png',

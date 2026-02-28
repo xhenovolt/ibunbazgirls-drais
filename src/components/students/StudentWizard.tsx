@@ -657,7 +657,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
           title: 'Student Admitted Successfully!',
           html: `
             <div class="text-center">
-              <p><strong>${responseData?.admission_no || 'Student'}</strong> has been admitted to EXCEL ISLAMIC NURSERY & PRIMARY SCHOOL.</p>
+              <p><strong>${responseData?.admission_no || 'Student'}</strong> has been admitted to Ibun Baz Girls Secondary School</p>
               <p class="mt-2 text-sm text-gray-600">The admission form has been automatically downloaded to your device.</p>
               <div class="mt-3 p-3 bg-green-50 rounded-lg">
                 <div class="flex items-center justify-center gap-2">
