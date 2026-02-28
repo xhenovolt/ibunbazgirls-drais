@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     const schoolName = 'Ibun Baz Girls Secondary School';
-    const schoolAddress = 'Kampala, Uganda';
+    const schoolAddress = 'Busei, Iganga along Iganga-Tororo highway';
     const logoUrl = '/uploads/logo.png';
 
     const html = `<!doctype html>

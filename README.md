@@ -39,7 +39,7 @@ npm run dev
 ## School Information
 
 - **Name**: Ibun Baz Girls Secondary School
-- **Location**: Kampala, Uganda
+- **Location**: Busei, Iganga along Iganga-Tororo highway
 - **System**: DRAIS v4.0
 
 ## License

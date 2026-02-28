@@ -2,22 +2,30 @@ import mysql from 'mysql2/promise';
 
 let pool: mysql.Pool | null = null;
 
+const dbConfig = {
+  host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.MYSQL_PORT || process.env.DB_PORT || '3306', 10),
+  user: process.env.MYSQL_USER || process.env.DB_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || process.env.DB_PASS || '',
+  database: process.env.MYSQL_DB || process.env.DB_NAME || 'ibunbaz_drais',
+};
+
 export function getPool() {
   if (pool) return pool;
   pool = mysql.createPool({
-    host: process.env.MYSQL_HOST || '127.0.0.1',
-    user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DB || 'drais_school',
+    host: dbConfig.host,
+    port: dbConfig.port,
+    user: dbConfig.user,
+    password: dbConfig.password,
+    database: dbConfig.database,
     waitForConnections: true,
     connectionLimit: 10,
+    queueLimit: 0,
+    enableKeepAlive: true,
     timezone: 'Z',
   });
   return pool;
 }
-
-// Export pool directly for backward compatibility
-export { pool };
 
 export async function query(sql: string, params: unknown[] = []) {
   const p = getPool();
@@ -28,10 +36,11 @@ export async function query(sql: string, params: unknown[] = []) {
 export async function getConnection() {
   try {
     return await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASS || '',
-      database: process.env.DB_NAME || 'drais_school',
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      password: dbConfig.password,
+      database: dbConfig.database,
     });
   } catch (error) {
     console.error('Database connection error:', error);

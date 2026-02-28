@@ -317,10 +317,10 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
 
       // Fetch school info dynamically
       let schoolInfo = {
-        school_name: 'Albayan Quran Memorization Centre Nursery and Primary School',
-        school_address: 'Bugumba, Iganga Municipality',
+        school_name: 'Ibun Baz Girls Secondary School',
+        school_address: 'Busei, Iganga along Iganga-Tororo highway',
         school_contact: '+256 700 123 456',
-        school_email: 'info@albayan.ac.ug',
+        school_email: 'info@ibunbaz.ac.ug',
         principal_name: 'Headteacher'
       };
 

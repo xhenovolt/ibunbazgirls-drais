@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       const [streams]: any = await connection.execute('SELECT id, name FROM streams');
       const [villages]: any = await connection.execute('SELECT id, name FROM villages');
       const [years]: any = await connection.execute('SELECT id FROM academic_years WHERE status = "active" LIMIT 1');
-      const [terms]: any = await connection.execute('SELECT id FROM terms WHERE status = "active" LIMIT 1');
+      const [terms]: any = await connection.execute('SELECT id FROM terms WHERE is_active = 1 LIMIT 1');
 
       const classMap = new Map((classes || []).map((c: any) => [c.name.toLowerCase(), c.id]));
       const streamMap = new Map((streams || []).map((s: any) => [s.name.toLowerCase(), s.id]));

@@ -16,9 +16,9 @@ export async function GET(req: NextRequest) {
         success: true,
         data: {
           school_name: 'Ibun Baz Girls Secondary School', // Override to ensure correct name is displayed
-          school_address: (schoolRows as any[])[0].address || 'Kampala, Uganda',
+          school_address: (schoolRows as any[])[0].address || 'Busei, Iganga along Iganga-Tororo highway',
           school_contact: (schoolRows as any[])[0].phone || '+256 700 123 456',
-          school_email: (schoolRows as any[])[0].email || 'info@albayan.ac.ug',
+          school_email: (schoolRows as any[])[0].email || 'info@ibunbaz.ac.ug',
         }
       });
     }
@@ -38,9 +38,9 @@ export async function GET(req: NextRequest) {
         success: true,
         data: {
           school_name: settings.school_name || 'Ibun Baz Girls Secondary School',
-          school_address: settings.school_address || 'Kampala, Uganda',
+          school_address: settings.school_address || 'Busei, Iganga along Iganga-Tororo highway',
           school_contact: settings.school_phone || settings.school_contact || '+256 700 123 456',
-          school_email: settings.school_email || 'info@albayan.ac.ug',
+          school_email: settings.school_email || 'info@ibunbaz.ac.ug',
         }
       });
     }
@@ -50,9 +50,9 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         school_name: 'Ibun Baz Girls Secondary School',
-        school_address: 'Kampala, Uganda',
+        school_address: 'Busei, Iganga along Iganga-Tororo highway',
         school_contact: '+256 700 123 456',
-        school_email: 'info@hillsideways.ac.ug',
+        school_email: 'info@ibunbaz.ac.ug',
       }
     });
 
@@ -63,9 +63,9 @@ export async function GET(req: NextRequest) {
       error: 'Failed to fetch school info',
       data: {
         school_name: 'Ibun Baz Girls Secondary School',
-        school_address: 'Kampala, Uganda',
+        school_address: 'Busei, Iganga along Iganga-Tororo highway',
         school_contact: '+256 700 123 456',
-        school_email: 'info@hillsideways.ac.ug',
+        school_email: 'info@ibunbaz.ac.ug',
       }
     });
   } finally {

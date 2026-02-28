@@ -243,7 +243,7 @@ export async function POST(req: NextRequest) {
       
       // Get school name from database
       let schoolName = 'Ibun Baz Girls Secondary School';
-      let schoolAddress = 'Kampala, Uganda';
+      let schoolAddress = 'Busei, Iganga along Iganga-Tororo highway';
       try {
         const [schoolRows] = await connection.execute(
           'SELECT name, address FROM schools WHERE id = ? LIMIT 1',
