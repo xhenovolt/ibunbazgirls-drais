@@ -29,8 +29,7 @@ export async function GET(req: NextRequest) {
       bestLearner,
       worstLearner,
       termProgress,
-      todayAttendance,
-      aiInsights
+      todayAttendance
     ] = await Promise.all([
       // Total classes
       connection.execute('SELECT COUNT(*) AS total_classes FROM classes WHERE school_id = ?', [schoolId]),
@@ -68,17 +67,18 @@ export async function GET(req: NextRequest) {
         WHERE school_id = ?
       `, [schoolId]),
 
-      // Payment statistics
+      // Payment statistics - using actual fee balance calculations
       connection.execute(`
         SELECT
-          SUM(CASE WHEN (amount - discount - paid) = 0 THEN 1 ELSE 0 END) AS fully_paid,
-          SUM(CASE WHEN (amount - discount - paid) > 0 AND paid > 0 THEN 1 ELSE 0 END) AS partially_paid,
-          SUM(CASE WHEN paid = 0 THEN 1 ELSE 0 END) AS not_paid,
-          SUM(amount - discount - paid) AS total_outstanding
+          SUM(CASE WHEN sfi.status = 'paid' THEN 1 ELSE 0 END) AS fully_paid,
+          SUM(CASE WHEN sfi.status = 'partial' THEN 1 ELSE 0 END) AS partially_paid,
+          SUM(CASE WHEN sfi.status IN ('pending', 'overdue') THEN 1 ELSE 0 END) AS not_paid,
+          SUM(CASE WHEN sfi.balance > 0 THEN sfi.balance ELSE 0 END) AS total_outstanding,
+          SUM(CASE WHEN sfi.status = 'paid' THEN sfi.paid ELSE 0 END) AS total_paid
         FROM student_fee_items sfi
         JOIN students s ON sfi.student_id = s.id
-        WHERE s.school_id = ?
-      `, [schoolId]),
+        WHERE s.school_id = ? AND sfi.academic_year = ?
+      `, [schoolId, new Date().getFullYear().toString()]),
 
       // Performance statistics
       connection.execute(`
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
         LIMIT 1
       `, [schoolId]),
 
-      // Term progress
+      // Term progress - Fixed: use is_active instead of status
       connection.execute(`
         SELECT
           t.name AS term_name,
@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
             ELSE 0
           END AS days_covered
         FROM terms t
-        WHERE t.status = "active" AND t.school_id = ?
+        WHERE t.is_active = 1 AND t.school_id = ?
         ORDER BY t.id DESC
         LIMIT 1
       `, [schoolId]),
@@ -146,23 +146,7 @@ export async function GET(req: NextRequest) {
         JOIN enrollments e ON s.id = e.student_id
         LEFT JOIN student_attendance sa ON s.id = sa.student_id AND sa.date = ?
         WHERE s.school_id = ? AND s.status = 'active' AND e.status = 'active'
-      `, [today, schoolId]),
-
-      // AI insights (using Prisma for complex object queries)
-      prisma.aiInsight.findMany({
-        where: {
-          schoolId: schoolId,
-          isActive: true,
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: new Date() } }
-          ]
-        },
-        orderBy: {
-          confidenceScore: 'desc'
-        },
-        take: 1
-      })
+      `, [today, schoolId])
     ]);
 
     // Extract results from arrays
@@ -246,8 +230,7 @@ export async function GET(req: NextRequest) {
         days_covered: 0,
         weekends_covered: 0,
         public_days: 0,
-      },
-      aiInsight: aiInsights[0] || null
+      }
     };
 
     return NextResponse.json({
