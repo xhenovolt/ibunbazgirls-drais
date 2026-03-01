@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { getSchoolInfo } from '@/lib/schoolConfig';
 import path from 'path';
 import fs from 'fs/promises';
 import puppeteer from 'puppeteer';
@@ -241,20 +242,18 @@ export async function POST(req: NextRequest) {
       const student_id = newStudentId;
       const person_id = newPersonId;
       
-      // Get school name from database
+      // Get school info from centralized configuration (single source of truth)
       let schoolName = 'Ibun Baz Girls Secondary School';
       let schoolAddress = 'Busei, Iganga along Iganga-Tororo highway';
       try {
-        const [schoolRows] = await connection.execute(
-          'SELECT name, address FROM schools WHERE id = ? LIMIT 1',
-          [1]
-        );
-        if (schoolRows && (schoolRows as any[]).length > 0) {
-          schoolName = (schoolRows as any[])[0].name || schoolName;
-          schoolAddress = (schoolRows as any[])[0].address || schoolAddress;
+        const schoolInfo = getSchoolInfo();
+        if (schoolInfo) {
+          schoolName = schoolInfo.name || schoolName;
+          schoolAddress = schoolInfo.address || schoolAddress;
         }
-      } catch (schoolError) {
-        console.error('Error fetching school name:', schoolError);
+      } catch (configError) {
+        console.error('Error fetching school config:', configError);
+        // Fallback to hardcoded values on error
       }
       
       // Generate PDF admission form

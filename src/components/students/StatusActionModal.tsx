@@ -90,6 +90,39 @@ export function StatusActionModal({ open, onClose, student, action, onCompleted 
    const [previewHtml, setPreviewHtml] = React.useState<string>('');
    const [loading, setLoading] = React.useState(false);
    const [letterUrl, setLetterUrl] = React.useState<string | null>(null);
+   const [schoolConfig, setSchoolConfig] = React.useState<any>({
+     name: 'School Name',
+     address: 'School Address Line 1 • Phone: 000-000-000',
+     logo: '/uploads/logo.png',
+     principal: 'Principal / Headteacher'
+   });
+ 
+   // Fetch school configuration on mount
+   React.useEffect(() => {
+     const fetchSchoolConfig = async () => {
+       try {
+         const response = await fetch('/api/school-config');
+         if (response.ok) {
+           const data = await response.json();
+           const school = data.school || data.data;
+           if (school) {
+             setSchoolConfig({
+               name: school.name || school.school_name || 'School Name',
+               address: `${school.address || 'School Address'} • Phone: ${school.contact?.phone || '000-000-000'}`,
+               logo: school.branding?.logo || '/uploads/logo.png',
+               principal: school.principal?.name || school.principal?.title || 'Principal / Headteacher'
+             });
+           }
+         }
+       } catch (err) {
+         console.warn('Could not fetch school config:', err);
+       }
+     };
+     
+     if (open) {
+       fetchSchoolConfig();
+     }
+   }, [open]);
  
    React.useEffect(() => {
      // reset when opening
@@ -124,16 +157,17 @@ export function StatusActionModal({ open, onClose, student, action, onCompleted 
  <p>${permanent ? '<strong>This expulsion is permanent; the learner is barred from returning.</strong>' : ''}</p>`;
      }
  
+     // Fetch school info from centralized configuration
      const html = letterTemplate({
-       schoolName: 'School Name',
-       schoolAddress: 'School Address Line 1 • Phone: 000-000-000',
-       logoUrl: '/uploads/logo.png',
+       schoolName: schoolConfig.name,
+       schoolAddress: schoolConfig.address,
+       logoUrl: schoolConfig.logo,
        dateStr,
        studentName: `${student.first_name} ${student.last_name}`,
        admissionNo: student.admission_no,
        className: student.class_name,
        bodyHtml: body,
-       signatureName: 'Principal / Headteacher'
+       signatureName: schoolConfig.principal
      });
      setPreviewHtml(html);
    };

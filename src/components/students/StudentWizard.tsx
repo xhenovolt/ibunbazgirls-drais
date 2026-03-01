@@ -315,7 +315,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
         id: 'pdf-toast'
       });
 
-      // Fetch school info dynamically
+      // Fetch school info from centralized configuration
       let schoolInfo = {
         school_name: 'Ibun Baz Girls Secondary School',
         school_address: 'Busei, Iganga along Iganga-Tororo highway',
@@ -326,21 +326,23 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
 
       try {
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000/api';
-        const response = await fetch(`${API_BASE_URL}/school-info`);
+        // Try new unified school-config endpoint first
+        const response = await fetch(`${API_BASE_URL}/school-config`);
         if (response.ok) {
           const result = await response.json();
-          if (result.data) {
+          const school = result.school || result.data;
+          if (school) {
             schoolInfo = {
-              school_name: result.data.school_name || schoolInfo.school_name,
-              school_address: result.data.school_address || schoolInfo.school_address,
-              school_contact: result.data.school_contact || schoolInfo.school_contact,
-              school_email: result.data.school_email || schoolInfo.school_email,
-              principal_name: result.data.principal_name || schoolInfo.principal_name
+              school_name: school.name || school.school_name || schoolInfo.school_name,
+              school_address: school.address || school.school_address || schoolInfo.school_address,
+              school_contact: school.contact?.phone || school.school_contact || schoolInfo.school_contact,
+              school_email: school.contact?.email || school.school_email || schoolInfo.school_email,
+              principal_name: school.principal?.name || school.principal?.title || school.principal_name || schoolInfo.principal_name
             };
           }
         }
       } catch (err) {
-        console.warn('Could not fetch school info, using defaults:', err);
+        console.warn('Could not fetch school config, using defaults:', err);
       }
 
       const doc = new jsPDF('portrait', 'mm', 'a4');

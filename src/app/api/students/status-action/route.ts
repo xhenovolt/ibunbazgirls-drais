@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { getSchoolInfo } from '@/lib/schoolConfig';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 
@@ -64,6 +65,29 @@ export async function POST(req: NextRequest) {
     const schoolName = 'Ibun Baz Girls Secondary School';
     const schoolAddress = 'Busei, Iganga along Iganga-Tororo highway';
     const logoUrl = '/uploads/logo.png';
+    let principalName = 'Principal / Headteacher';
+    
+    // Get school info from centralized configuration (single source of truth)
+    try {
+      const schoolInfo = getSchoolInfo();
+      if (schoolInfo) {
+        if (schoolInfo.name) {
+          (schoolName as any) = schoolInfo.name;
+        }
+        if (schoolInfo.address) {
+          (schoolAddress as any) = schoolInfo.address;
+        }
+        if (schoolInfo.branding?.logo) {
+          (logoUrl as any) = schoolInfo.branding.logo;
+        }
+        if (schoolInfo.principal?.name) {
+          principalName = schoolInfo.principal.name;
+        }
+      }
+    } catch (configError) {
+      console.error('Error fetching school config:', configError);
+      // Fall back to hardcoded defaults
+    }
 
     const html = `<!doctype html>
 <html>
@@ -82,7 +106,7 @@ export async function POST(req: NextRequest) {
     <p>To: <strong>${student.first_name} ${student.last_name}</strong></p>
     ${bodyHtml}
     <div style="margin-top:40px">
-      <div style="border-top:1px solid #999;width:220px;padding-top:8px;color:#444">Principal / Headteacher</div>
+      <div style="border-top:1px solid #999;width:220px;padding-top:8px;color:#444">${principalName}</div>
     </div>
   </div>
 </body>
