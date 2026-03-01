@@ -211,7 +211,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
         fetch(`${API_BASE}/classes`).then(r=>r.json()).catch(()=>({})),
         fetch(`${API_BASE}/curriculums`).then(r=>r.json()).catch(()=>({})),
         fetch(`${API_BASE}/academic_years`).then(r=>r.json()).catch(()=>({})),
-        fetch(`${API_BASE}/terms`).then(r=>r.json()).catch(()=>({}))),
+        fetch(`${API_BASE}/terms`).then(r=>r.json()).catch(()=>({})),
         fetch(`${API_BASE}/school-config`).then(r=>r.json()).catch(()=>({}))
       ]).then(([cl,cu,ya,te,schoolCfg])=>{ 
         const yrs=toArr(ya); 
