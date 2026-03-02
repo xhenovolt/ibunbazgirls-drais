@@ -1049,7 +1049,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                               </Field>
                               <Field label="Date of Birth"><input type="date" value={dob} onChange={e=>setDob(e.target.value)} className={fieldCls} /></Field>
                               <Field label="Phone"><input value={phone} onChange={e=>setPhone(e.target.value)} className={fieldCls} /></Field>
-                              <Field label="Address" className="md:col-span-2"><input value={address} onChange={e=>setAddress(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Address" className="md:col-span-2"><input value={address} onChange={e=>setAddress(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                               <Field label="Nationality"><input value={nationalityId} onChange={e=>setNationalityId(e.target.value)} className={fieldCls} /></Field>
                               <Field label="Orphan Status">
                                 <select value={orphanStatus} onChange={e=>setOrphanStatus(e.target.value)} className={fieldCls}>
@@ -1065,8 +1065,8 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                                   <option value="deceased">Deceased</option>
                                 </select>
                               </Field>
-                              <Field label="Place of Birth"><input value={placeBirth} onChange={e=>setPlaceBirth(e.target.value)} className={fieldCls} /></Field>
-                              <Field label="Place of Residence"><input value={placeResidence} onChange={e=>setPlaceResidence(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Place of Birth"><input value={placeBirth} onChange={e=>setPlaceBirth(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
+                              <Field label="Place of Residence"><input value={placeResidence} onChange={e=>setPlaceResidence(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                               <Field label="Juzus Memorized"><input value={noOfJuzus} onChange={e=>setNoOfJuzus(e.target.value)} className={fieldCls} /></Field>
                               <Field label="Previous School"><input value={prevSchool} onChange={e=>setPrevSchool(e.target.value)} className={fieldCls} /></Field>
                               <Field label="Previous School Year"><input value={prevSchoolYear} onChange={e=>setPrevSchoolYear(e.target.value)} className={fieldCls} /></Field>
@@ -1179,7 +1179,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                     <div className="grid md:grid-cols-3 gap-6">
                       <Field label="District ID (Optional)"><input value={districtId} onChange={e=>setDistrictId(e.target.value)} className={fieldCls} /></Field>
                       <Field label="Village ID (Optional)"><input value={villageId} onChange={e=>setVillageId(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Residence (Optional)" className="md:col-span-2"><input value={placeResidence} onChange={e=>setPlaceResidence(e.target.value)} className={fieldCls} /></Field>
+                      <Field label="Residence (Optional)" className="md:col-span-2"><input value={placeResidence} onChange={e=>setPlaceResidence(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                     </div>
                   )}
                   {step===4 && (
