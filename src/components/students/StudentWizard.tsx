@@ -943,7 +943,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
         <div className="fixed inset-0 overflow-y-auto p-4 md:p-8">
           <div className="mx-auto max-w-5xl">
             <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-              <Dialog.Panel className="relative rounded-3xl border border-white/15 dark:border-white/10 bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-slate-800/60 backdrop-blur-2xl shadow-2xl overflow-visible flex flex-col max-h-[90vh]">
+              <Dialog.Panel className="relative rounded-3xl border border-white/15 dark:border-white/10 bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-slate-800/60 backdrop-blur-2xl shadow-2xl overflow-visible flex flex-col h-screen md:h-[85vh] max-h-[85vh]">
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute -top-16 -right-10 w-72 h-72 bg-fuchsia-400/20 blur-3xl rounded-full" />
                   <div className="absolute -bottom-24 -left-20 w-96 h-96 bg-indigo-500/20 blur-3xl rounded-full" />
@@ -962,7 +962,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                   <button type="button" onClick={handleClose} className="ml-2 p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10"><X className="w-5 h-5"/></button>
                 </div>
                 
-                <div className="relative p-8 space-y-4 overflow-visible overflow-y-auto flex-1 min-h-[400px]">
+                <div className="relative p-8 space-y-4 overflow-visible overflow-y-auto flex-1 h-screen md:h-auto">
                   {step===0 && (
                     <>
                       {/* Required Names Section */}
