@@ -502,52 +502,202 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
 
       yPosition += 10;
 
-      // School Policies
+      // COMPREHENSIVE SCHOOL POLICIES SECTION
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('SCHOOL POLICIES & EXPECTATIONS:', 20, yPosition);
+      doc.text('SCHOOL POLICIES & EXPECTATIONS', 20, yPosition);
       yPosition += 8;
 
-      const policies = [
-        '• Regular attendance and punctuality are mandatory',
-        '• Adherence to school dress code and conduct policies',
-        '• Respect for Islamic values and academic excellence',
-        '• Active participation in both secular and religious studies',
-        '• Payment of fees as per agreed schedule'
-      ];
-
       doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('1. DRESS CODE & UNIFORM REQUIREMENTS', 20, yPosition);
+      yPosition += 6;
+      
       doc.setFont('helvetica', 'normal');
-      policies.forEach(policy => {
-        doc.text(policy, 25, yPosition);
-        yPosition += 6;
-      });
+      doc.setFontSize(9);
+      const dressCodeText = 'School Uniform (Mandatory): Navy blue skirt (knee-length), white blouse, navy blue jacket, white socks, black shoes. Hair must be neatly groomed; hijab encouraged in line with Islamic teachings. No makeup, nail polish, or visible jewelry except simple earrings. All attire must be clean and well-maintained. Uniform violations result in disciplinary action.';
+      const dressCodeLines = doc.splitTextToSize(dressCodeText, pageWidth - 40);
+      doc.text(dressCodeLines, 25, yPosition);
+      yPosition += dressCodeLines.length * 3.5 + 5;
 
-      // Signatures Section
-      yPosition = Math.max(yPosition + 20, pageHeight - 80);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('2. ATTENDANCE & PUNCTUALITY', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const attendanceText = 'Reporting Time: 6:45 AM (Assembly at 7:00 AM). Maximum 2 days unexplained absence per term. Minimum 85% attendance required to sit examinations. Medical certificates required for absences exceeding 2 consecutive days. Poor attendance results in academic probation or expulsion.';
+      const attendanceLines = doc.splitTextToSize(attendanceText, pageWidth - 40);
+      doc.text(attendanceLines, 25, yPosition);
+      yPosition += attendanceLines.length * 3.5 + 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('3. BEHAVIOR & DISCIPLINE GUIDELINES', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const behaviorText = 'Prohibited: Bullying, theft, cheating, violence, drugs, alcohol, weapons, disrespect to authority, vandalism, or inappropriate conduct. Disciplinary measures: Verbal warning → Written warning → Detention → Parent meeting → Suspension → Expulsion. Serious violations (violence, theft, weapons) result in immediate suspension and possible expulsion.';
+      const behaviorLines = doc.splitTextToSize(behaviorText, pageWidth - 40);
+      doc.text(behaviorLines, 25, yPosition);
+      yPosition += behaviorLines.length * 3.5 + 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('4. RELIGIOUS & PRAYER OBLIGATIONS', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const religionText = 'Dhuhr Prayer (Midday): Mandatory for all Muslim students. Conducted in designated prayer hall during school hours. Friday Jumu\'ah prayers encouraged. During Ramadan, lighter meals and flexible PE activities provided. Islamic studies are core curriculum. All students, regardless of religion, are taught Islamic values: honesty, community, respect, compassion. Non-Muslim students fully respected and accommodated.';
+      const religionLines = doc.splitTextToSize(religionText, pageWidth - 40);
+      doc.text(religionLines, 25, yPosition);
+      yPosition += religionLines.length * 3.5 + 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('5. ACADEMIC INTEGRITY & HOMEWORK', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const academicText = 'Copying work or submitting work not your own constitutes cheating. First offense: Zero marks + detention. Second offense: Suspension. Third offense: Expulsion. Expected homework: S.1-S.2: 1.5-2 hours/day; S.3-S.4: 2.5-3.5 hours/day. Late homework receives 10% deduction per day. Remedial classes and peer tutoring available for struggling students.';
+      const academicLines = doc.splitTextToSize(academicText, pageWidth - 40);
+      doc.text(academicLines, 25, yPosition);
+      yPosition += academicLines.length * 3.5 + 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('6. HEALTH, SAFETY & EMERGENCY PROCEDURES', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const healthText = 'Medical facilities staffed during school hours. All students must be up-to-date on vaccinations. Fire drills conducted monthly. Emergency exits clearly marked. CCTV security cameras in public areas. Prohibited items: Sharp objects, lighters, matches, flammable materials, unauthorized mobile phones. School not responsible for lost items. Parents contacted immediately for serious medical or safety issues.';
+      const healthLines = doc.splitTextToSize(healthText, pageWidth - 40);
+      doc.text(healthLines, 25, yPosition);
+      yPosition += healthLines.length * 3.5 + 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('7. COMMUNICATION WITH PARENTS/GUARDIANS', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const communicationText = 'Report cards issued end of each term. Parent-teacher meetings held twice per term. School newsletters issued monthly. Online portal provides access to student progress and attendance. Parents expected to attend at least 2 meetings per term and monitor homework completion. Urgent issues trigger immediate parent notification.';
+      const communicationLines = doc.splitTextToSize(communicationText, pageWidth - 40);
+      doc.text(communicationLines, 25, yPosition);
+      yPosition += communicationLines.length * 3.5 + 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('8. FEE PAYMENT & FINANCIAL OBLIGATIONS', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const feeText = 'School fees are due on the first day of each term. Payment can be made via bank transfer, mobile money, or direct deposit at school offices. Failure to pay fees may result in suspension from classes. Fee payment is mandatory for examination eligibility.';
+      const feeLines = doc.splitTextToSize(feeText, pageWidth - 40);
+      doc.text(feeLines, 25, yPosition);
+      yPosition += feeLines.length * 3.5 + 8;
+
+      // IMPORTANT REMINDERS SECTION
+      if (yPosition > pageHeight - 150) {
+        doc.addPage();
+        yPosition = 20;
+      }
       
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('ACKNOWLEDGMENT & SIGNATURES:', 20, yPosition);
-      yPosition += 15;
-
-      // Signature blocks
+      doc.text('IMPORTANT REMINDERS', 20, yPosition);
+      yPosition += 6;
+      
       doc.setFont('helvetica', 'normal');
-      doc.text('Headteacher Signature:', 20, yPosition);
-      doc.text('Parent/Guardian Signature:', pageWidth / 2 + 10, yPosition);
+      doc.setFontSize(9);
+      const reminders = [
+        '• This admission is CONDITIONAL on submission of all required documents and fee payment',
+        '• REPORTING DATE: ' + new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-GB'),
+        '• Report by 6:45 AM; Assembly & Orientation begins at 7:00 AM',
+        '• Late reporting without prior permission may result in forfeiture of admission',
+        '• Parent/Guardian agreement to all policies is MANDATORY',
+        '• School reserves right to amend policies with 2 weeks\' notice',
+        '• Academic streams: Science (Biology, Chemistry, Physics) & Theology (Quranic, Islamic Law)'
+      ];
       
+      reminders.forEach(reminder => {
+        doc.text(reminder, 25, yPosition);
+        yPosition += 5;
+      });
+
+      yPosition += 8;
+
+      // CONTACT INFORMATION
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CONTACT INFORMATION FOR INQUIRIES:', 20, yPosition);
+      yPosition += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const contactInfo = [
+        `School: ${schoolInfo.school_name}`,
+        `Location: ${schoolInfo.school_address || 'Busei, Iganga'}`,
+        `Telephone: ${schoolInfo.school_contact || '+256 700 123 456'}`,
+        `Email: ${schoolInfo.school_email || 'admissions@ibunbaz.ac.ug'}`,
+        'Office Hours: 8:00 AM - 4:00 PM, Monday to Friday'
+      ];
+      
+      contactInfo.forEach(contact => {
+        doc.text(contact, 25, yPosition);
+        yPosition += 5;
+      });
+
+      yPosition += 10;
+
+      // ACKNOWLEDGMENT STATEMENT
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ACKNOWLEDGMENT OF RECEIPT & ACCEPTANCE', 20, yPosition);
+      yPosition += 7;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const acknowledgmentText = `I/We acknowledge receipt of this Official Admission Letter and confirm that I/we understand and accept all conditions, policies, and expectations outlined herein. I/We commit to supporting ${studentData.first_name} ${studentData.last_name}'s academic and personal development in accordance with the values and standards of ${schoolInfo.school_name}.`;
+      
+      const ackLines = doc.splitTextToSize(acknowledgmentText, pageWidth - 40);
+      doc.text(ackLines, 20, yPosition);
+      yPosition += ackLines.length * 3.5 + 12;
+
+      // Signatures Section
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('AUTHORIZED BY:', 20, yPosition);
+      doc.text('PARENT/GUARDIAN ACCEPTANCE:', pageWidth / 2 + 10, yPosition);
+      yPosition += 20;
+
       // Signature lines
-      doc.line(20, yPosition + 8, 80, yPosition + 8);
-      doc.line(pageWidth / 2 + 10, yPosition + 8, pageWidth - 20, yPosition + 8);
+      doc.line(20, yPosition, 85, yPosition);
+      doc.line(pageWidth / 2 + 10, yPosition, pageWidth - 20, yPosition);
       
-      yPosition += 15;
-      doc.text('Date: ________________', 20, yPosition);
-      doc.text('Date: ________________', pageWidth / 2 + 10, yPosition);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('Headmistress/Headmaster', 20, yPosition + 2);
+      doc.text('Parent/Guardian', pageWidth / 2 + 10, yPosition + 2);
+      
+      yPosition += 10;
+      doc.text('Date: _______________', 20, yPosition);
+      doc.text('Date: _______________', pageWidth / 2 + 10, yPosition);
 
       // Footer
+      yPosition = pageHeight - 15;
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
-      doc.text(`This is an official document from ${schoolInfo.school_name}. Please keep this letter for your records.`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+      const footerText = `This is an OFFICIAL document from ${schoolInfo.school_name}. Please keep this letter for your records. A scanned copy will be sent to your registered email address.`;
+      const footerLines = doc.splitTextToSize(footerText, pageWidth - 40);
+      doc.text(footerLines, pageWidth / 2, yPosition - footerLines.length * 2.5, { align: 'center' });
 
       // Generate and download
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
