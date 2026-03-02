@@ -36,7 +36,7 @@ const ClassSelect:React.FC<{label:string; options:ClassRec[]; value?:ClassRec; o
             <ChevronsUpDown className="w-4 h-4 opacity-60"/>
           </Listbox.Button>
           <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <Listbox.Options className="absolute z-10 mt-2 left-0 right-0 max-h-64 overflow-auto rounded-xl border border-white/30 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-xl p-1 text-sm">
+            <Listbox.Options className="absolute z-50 mt-2 left-0 right-0 max-h-72 overflow-auto rounded-xl border border-white/30 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl p-1 text-sm">
               {options.map(o => (
                 <Listbox.Option key={o.id} value={o} className={({active,selected})=>`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer ${active? 'bg-black/5 dark:bg-white/10':''} ${selected? 'text-fuchsia-600 dark:text-fuchsia-400 font-semibold':''}`}>
                   {({selected}) => (<><span className="flex-1 truncate">{o.name}</span>{selected && <Check className="w-4 h-4"/>}</>)}
@@ -65,7 +65,7 @@ const FutSelect:React.FC<{label:string; items:any; value?:{id:number; name:strin
           </Listbox.Button>
           {!disabled && (
             <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-              <Listbox.Options className="absolute z-10 mt-2 left-0 right-0 max-h-60 overflow-auto rounded-xl border border-white/30 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-xl p-1 text-sm">
+              <Listbox.Options className="absolute z-50 mt-2 left-0 right-0 max-h-72 overflow-auto rounded-xl border border-white/30 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl p-1 text-sm">
                 {list.map((o:any) => (
                   <Listbox.Option key={o.id} value={o} className={({active,selected})=>`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer ${active? 'bg-black/5 dark:bg-white/10':''} ${selected? 'text-fuchsia-600 dark:text-fuchsia-400 font-semibold':''}`}>
                     {({selected}) => (<><span className="flex-1 truncate">{o.name}</span>{selected && <Check className="w-4 h-4"/>}</>)}
@@ -943,12 +943,12 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
         <div className="fixed inset-0 overflow-y-auto p-4 md:p-8">
           <div className="mx-auto max-w-5xl">
             <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-              <Dialog.Panel className="relative rounded-3xl border border-white/15 dark:border-white/10 bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-slate-800/60 backdrop-blur-2xl shadow-2xl overflow-hidden">
+              <Dialog.Panel className="relative rounded-3xl border border-white/15 dark:border-white/10 bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-slate-800/60 backdrop-blur-2xl shadow-2xl overflow-visible flex flex-col max-h-[90vh]">
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute -top-16 -right-10 w-72 h-72 bg-fuchsia-400/20 blur-3xl rounded-full" />
                   <div className="absolute -bottom-24 -left-20 w-96 h-96 bg-indigo-500/20 blur-3xl rounded-full" />
                 </div>
-                <div className="relative p-6 border-b border-white/30 dark:border-white/10 flex flex-wrap gap-2">
+                <div className="relative p-6 border-b border-white/30 dark:border-white/10 flex flex-wrap gap-2 flex-shrink-0 z-40">
                   {steps.map((s,i)=>(<button key={s} type="button" onClick={()=>{ if(i<step && !loading) setStep(i); }} className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition ${i===step?'bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-pink-600 text-white shadow':'bg-white/40 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300'}`}>{i+1}. {s}</button>))}
                   <div className="ml-auto flex items-center gap-3 text-xs font-medium">
                     {message && <span className={message.type==='error'?'text-red-600':'text-green-600'}>{message.text}</span>}
@@ -962,7 +962,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                   <button type="button" onClick={handleClose} className="ml-2 p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10"><X className="w-5 h-5"/></button>
                 </div>
                 
-                <div className="relative p-8 space-y-4">
+                <div className="relative p-8 space-y-4 overflow-visible overflow-y-auto flex-1 min-h-[400px]">
                   {step===0 && (
                     <>
                       {/* Required Names Section */}
@@ -1215,7 +1215,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                       </ul>
                     </div>
                   )}
-                  <div className="flex justify-between items-center pt-2">
+                  <div className="flex justify-between items-center pt-6 border-t border-white/20 dark:border-white/10 mt-6 flex-shrink-0">
                     <div className="flex gap-2">
                       <button type="button" disabled={step===0 || loading} onClick={prev} className="px-4 py-2 rounded-lg text-xs font-medium bg-black/5 dark:bg-white/10 disabled:opacity-30">Back</button>
                       {step < steps.length-1 && <button type="button" disabled={!canNext() || loading} onClick={next} className="px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-pink-600 text-white disabled:opacity-40">Next</button>}
