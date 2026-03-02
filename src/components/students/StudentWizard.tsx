@@ -23,6 +23,7 @@ const Field:React.FC<{label:string; className?:string; children:React.ReactNode}
 );
 
 const fieldCls = "w-full px-3 py-2 rounded-xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-400 transition";
+const nameFieldCls = fieldCls + " uppercase";
 
 const ClassSelect:React.FC<{label:string; options:ClassRec[]; value?:ClassRec; onChange:(c:ClassRec)=>void; loading:boolean; accent:'secular'|'theology'}> = ({label,options,value,onChange,loading,accent}) => {
   const accentCls = accent==='theology' ? 'from-emerald-500/20 to-teal-500/10 ring-emerald-500/40' : 'from-indigo-500/20 to-fuchsia-500/10 ring-fuchsia-500/40';
@@ -975,17 +976,17 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                           <Field label="First Name">
                             <input 
                               value={first} 
-                              onChange={e=>setFirst(e.target.value)} 
+                              onChange={e=>setFirst(e.target.value.toUpperCase())} 
                               placeholder="e.g., KAGWINYRWOTH"
-                              className={`${fieldCls} text-base font-semibold ${touchedNames && !first.trim()? 'ring-2 ring-red-500 border-red-500':''}`} 
+                              className={`${nameFieldCls} text-base font-semibold ${touchedNames && !first.trim()? 'ring-2 ring-red-500 border-red-500':''}`} 
                             />
                           </Field>
                           <Field label="Last Name">
                             <input 
                               value={last} 
-                              onChange={e=>setLast(e.target.value)} 
+                              onChange={e=>setLast(e.target.value.toUpperCase())} 
                               placeholder="e.g., PRISCILA"
-                              className={`${fieldCls} text-base font-semibold ${touchedNames && !last.trim()? 'ring-2 ring-red-500 border-red-500':''}`} 
+                              className={`${nameFieldCls} text-base font-semibold ${touchedNames && !last.trim()? 'ring-2 ring-red-500 border-red-500':''}`} 
                             />
                           </Field>
                         </div>
@@ -1038,7 +1039,7 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                         {expandBiographic && (
                           <div className="px-4 py-4 border-t border-gray-200/50 dark:border-gray-700/50 space-y-4 bg-gradient-to-b from-gray-50/50 dark:from-gray-900/20 to-transparent">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <Field label="Other Name"><input value={otherName} onChange={e=>setOtherName(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Other Name"><input value={otherName} onChange={e=>setOtherName(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                               <Field label="Gender">
                                 <select value={gender} onChange={e=>setGender(e.target.value)} className={fieldCls}>
                                   <option value="">Select</option>
@@ -1147,30 +1148,30 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                     <div className="space-y-8">
                       <div className="grid md:grid-cols-4 gap-6">
                         <div className="md:col-span-4 font-semibold text-xs uppercase tracking-wide text-slate-500">Parents</div>
-                        <Field label="Mother Name"><input value={motherName} onChange={e=>setMotherName(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Mother Name"><input value={motherName} onChange={e=>setMotherName(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                         <Field label="Mother Contact"><input value={motherContact} onChange={e=>setMotherContact(e.target.value)} className={fieldCls} /></Field>
-                        <Field label="Mother Occupation"><input value={motherOccupation} onChange={e=>setMotherOccupation(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Mother Occupation"><input value={motherOccupation} onChange={e=>setMotherOccupation(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                         <Field label="Mother Alive?"><select value={motherAlive} onChange={e=>setMotherAlive(e.target.value as any)} className={fieldCls}><option value="unknown">Unknown</option><option value="alive">Alive</option><option value="deceased">Deceased</option></select></Field>
                         {motherAlive==='deceased' && <Field label="Mother Date of Death"><input type="date" value={motherDod} onChange={e=>setMotherDod(e.target.value)} className={fieldCls} /></Field>}
-                        <Field label="Father Name"><input value={fatherName} onChange={e=>setFatherName(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Father Name"><input value={fatherName} onChange={e=>setFatherName(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                         <Field label="Father Contact"><input value={fatherContact} onChange={e=>setFatherContact(e.target.value)} className={fieldCls} /></Field>
-                        <Field label="Father Occupation"><input value={fatherOccupation} onChange={e=>setFatherOccupation(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Father Occupation"><input value={fatherOccupation} onChange={e=>setFatherOccupation(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                         <Field label="Father Alive?"><select value={fatherAlive} onChange={e=>setFatherAlive(e.target.value as any)} className={fieldCls}><option value="unknown">Unknown</option><option value="alive">Alive</option><option value="deceased">Deceased</option></select></Field>
                         {fatherAlive==='deceased' && <Field label="Father Date of Death"><input type="date" value={fatherDod} onChange={e=>setFatherDod(e.target.value)} className={fieldCls} /></Field>}
                       </div>
                       <div className="grid md:grid-cols-4 gap-6">
                         <div className="md:col-span-4 font-semibold text-xs uppercase tracking-wide text-slate-500">Guardian</div>
-                        <Field label="Guardian Name"><input value={guardianName} onChange={e=>setGuardianName(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Guardian Name"><input value={guardianName} onChange={e=>setGuardianName(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                         <Field label="Guardian Contact"><input value={guardianContact} onChange={e=>setGuardianContact(e.target.value)} className={fieldCls} /></Field>
-                        <Field label="Guardian Occupation"><input value={guardianOccupation} onChange={e=>setGuardianOccupation(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Guardian Occupation"><input value={guardianOccupation} onChange={e=>setGuardianOccupation(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                         <Field label="Guardian Alive?"><select value={guardianAlive} onChange={e=>setGuardianAlive(e.target.value as any)} className={fieldCls}><option value="unknown">Unknown</option><option value="alive">Alive</option><option value="deceased">Deceased</option></select></Field>
                         {guardianAlive==='deceased' && <Field label="Guardian Date of Death"><input type="date" value={guardianDod} onChange={e=>setGuardianDod(e.target.value)} className={fieldCls} /></Field>}
                       </div>
                       <div className="grid md:grid-cols-4 gap-6">
                         <div className="md:col-span-4 font-semibold text-xs uppercase tracking-wide text-slate-500">Next of Kin</div>
-                        <Field label="Name"><input value={nokName} onChange={e=>setNokName(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Name"><input value={nokName} onChange={e=>setNokName(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                         <Field label="Contact"><input value={nokContact} onChange={e=>setNokContact(e.target.value)} className={fieldCls} /></Field>
-                        <Field label="Relationship"><input value={nokRelationship} onChange={e=>setNokRelationship(e.target.value)} className={fieldCls} /></Field>
+                        <Field label="Relationship"><input value={nokRelationship} onChange={e=>setNokRelationship(e.target.value.toUpperCase())} className={nameFieldCls} /></Field>
                       </div>
                     </div>
                   )}

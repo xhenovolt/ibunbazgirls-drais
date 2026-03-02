@@ -2,31 +2,21 @@ import { getConnection } from '@/lib/db';
 
 /**
  * Get the next sequential admission number for a school
- * Uses transaction locking to prevent race conditions
+ * Reads from students table and returns the next sequence number
  */
 export async function getNextAdmissionNumber(schoolId: number = 1): Promise<number> {
   const connection = await getConnection();
   try {
-    await connection.beginTransaction();
-
-    // Lock the school_sequence table for this school to prevent race conditions
-    const [lockResult]: any = await connection.execute(
-      `SELECT MAX(CAST(SUBSTRING(admission_no, POSITION('/' IN admission_no) + 1) AS UNSIGNED)) as max_num
+    // Get the next sequence number by finding the max numeric part
+    const [result]: any = await connection.execute(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(admission_no, '/', -2), '/', 1) AS UNSIGNED)), 0) + 1 as next_seq
        FROM students
-       WHERE school_id = ? AND admission_no IS NOT NULL
-       FOR UPDATE`,
+       WHERE school_id = ? AND admission_no IS NOT NULL AND admission_no LIKE 'XHN/%'`,
       [schoolId]
     );
-
-    let nextNumber = 1;
-    if (lockResult && lockResult[0]?.max_num) {
-      nextNumber = Math.max(nextNumber, lockResult[0].max_num + 1);
-    }
-
-    await connection.commit();
-    return nextNumber;
+    
+    return result[0]?.next_seq || 1;
   } catch (error) {
-    await connection.rollback();
     throw error;
   } finally {
     await connection.end();
@@ -34,15 +24,12 @@ export async function getNextAdmissionNumber(schoolId: number = 1): Promise<numb
 }
 
 /**
- * Format admission number as: YEAR-SCHOOLID-SEQUENCE
- * Example: 2026-001-001 or just sequential: 241
- * 
- * For now using simple sequential per requested spec
+ * Format admission number as: XHN/NNNN/YYYY
+ * Example: XHN/0001/2026, XHN/0262/2026
  */
 export function formatAdmissionNumber(sequenceNumber: number, schoolId: number = 1): string {
-  // Simple sequential format: just the number
-  // Can be changed to 2026-{schoolId}-{number} format if needed
-  return sequenceNumber.toString().padStart(3, '0');
+  // Format as XHN/0001/2026 style
+  return `XHN/${sequenceNumber.toString().padStart(4, '0')}/2026`;
 }
 
 /**

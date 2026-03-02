@@ -184,26 +184,39 @@ export async function POST(req: NextRequest) {
     try {
       await connection.beginTransaction();
       
-      // Insert person
-      const [personResult]: any = await connection.execute(
-        'INSERT INTO people (school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
+      // Get next sequential ID - cast as integer to get proper numeric maximum
+      const [maxIdResult]: any = await connection.execute(
+        'SELECT COALESCE(MAX(CAST(id AS UNSIGNED)), 0) as max_id FROM students'
       );
-      const newPersonId = personResult.insertId;
+      const nextId = (parseInt(maxIdResult[0]?.max_id) || 0) + 1;
+      
+      // Insert person with explicit ID to ensure alignment
+      await connection.execute(
+        'INSERT INTO people (id, school_id, first_name, last_name, other_name, gender, date_of_birth, phone, email, address, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [nextId, 1, safe(body.first_name), safe(body.last_name), safe(body.other_name), safe(body.gender), safe(body.date_of_birth), safe(body.phone), safe(body.email), safe(body.address), safe(body.photo_url)]
+      );
       
       // Generate sequential admission number if not provided
       let admission_no = body.admission_no;
       if (!admission_no) {
-        const nextSeq = await getNextAdmissionNumber(body.school_id || 1);
+        // Get the next sequence number using the same connection (in transaction)
+        const [seqResult]: any = await connection.execute(
+          `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(admission_no, '/', -2), '/', 1) AS UNSIGNED)), 0) + 1 as next_seq
+           FROM students
+           WHERE school_id = ? AND admission_no IS NOT NULL AND admission_no LIKE 'XHN/%'`,
+          [body.school_id || 1]
+        );
+        const nextSeq = seqResult[0]?.next_seq || 1;
         admission_no = formatAdmissionNumber(nextSeq, body.school_id || 1);
       }
       
-      // Insert student
-      const [studentResult]: any = await connection.execute(
-        'INSERT INTO students (school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [1, newPersonId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
+      // Insert student with explicit ID, ensuring perfect alignment with person
+      await connection.execute(
+        'INSERT INTO students (id, school_id, person_id, admission_no, village_id, admission_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [nextId, 1, nextId, admission_no, safe(body.village_id), safe(body.admission_date), safe(body.status) || 'active', safe(body.notes)]
       );
-      const newStudentId = studentResult.insertId;
+      const newStudentId = nextId;
+      const newPersonId = nextId;
       
       // Insert enrollment
       await connection.execute(
