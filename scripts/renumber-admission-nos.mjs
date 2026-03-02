@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Database Migration Script: Renumber person_id values sequentially
- * Changes large generic IDs (30682, 30683, etc.) to sequential (1, 2, 3...)
+ * Database Migration Script: Fix admission_no to be sequential
+ * Changes admission numbers from old format (XXX/30683/2026) to sequential (XHN/0001/2026, XHN/0002/2026, etc.)
  * 
- * IMPORTANT: Backup your database before running this!
- * Usage: node scripts/renumber-person-ids.mjs
+ * IMPORTANT: Run after renumber-person-ids.mjs
+ * Usage: node scripts/renumber-admission-nos.mjs
  */
 
 import mysql from 'mysql2/promise';
@@ -89,20 +89,11 @@ async function main() {
     
     connection = await pool.getConnection();
     
-    console.log('🔄 Starting person_id renumbering...\n');
+    console.log('🔄 Starting admission_no renumbering...\n');
     
-    // First, check what columns exist in the students table
-    const [tableInfo] = await connection.execute(
-      'DESCRIBE students'
-    );
-    
-    const columnNames = tableInfo.map(col => col.Field);
-    console.log('📋 Students table columns:', columnNames.join(', '));
-    console.log('');
-    
-    // Get all students, ordered by creation date
+    // Get all students sorted by creation date
     const [students] = await connection.execute(
-      `SELECT * FROM students ORDER BY created_at ASC, id ASC`
+      `SELECT id, admission_no FROM students ORDER BY created_at ASC, id ASC`
     );
     
     if (!students.length) {
@@ -111,27 +102,34 @@ async function main() {
     }
     
     console.log(`📊 Total students found: ${students.length}\n`);
-    console.log('Current person_id values to be renumbered:');
-    console.log('─'.repeat(80));
+    console.log('Current admission_no values to be updated:');
+    console.log('─'.repeat(90));
     
-    // Renumber sequentially starting from 1
-    let seq = 1;
+    // Generate sequential admission numbers
     const updates = [];
+    const currentYear = new Date().getFullYear();
     
-    for (const student of students) {
-      const oldPersonId = student.person_id;
-      const newPersonId = seq;
+    for (let i = 0; i < students.length; i++) {
+      const seq = i + 1;
+      const newAdmissionNo = `XHN/${String(seq).padStart(4, '0')}/${currentYear}`;
+      const oldAdmissionNo = students[i].admission_no;
       
       // Log first 5 and every 50th for visibility
       if (seq <= 5 || seq % 50 === 0 || seq === students.length) {
-        console.log(`${seq.toString().padStart(4, ' ')}. Student ID: ${String(student.id).padStart(6)} | OLD person_id: ${String(oldPersonId).padStart(10)} → NEW: ${String(newPersonId).padStart(4)}`);
+        console.log(
+          `${seq.toString().padStart(4, ' ')}. Student ID: ${String(students[i].id).padStart(6)} | ` +
+          `OLD: ${String(oldAdmissionNo || 'null').padStart(20)} → NEW: ${newAdmissionNo}`
+        );
       }
       
-      updates.push({ studentId: student.id, oldPersonId, newPersonId });
-      seq++;
+      updates.push({ 
+        studentId: students[i].id, 
+        oldAdmissionNo,
+        newAdmissionNo 
+      });
     }
     
-    console.log('─'.repeat(80));
+    console.log('─'.repeat(90));
     console.log(`\n⏳ Updating ${updates.length} student records...\n`);
     
     // Apply updates in transaction
@@ -139,26 +137,30 @@ async function main() {
     
     for (const update of updates) {
       await connection.execute(
-        'UPDATE students SET person_id = ? WHERE id = ?',
-        [update.newPersonId, update.studentId]
+        'UPDATE students SET admission_no = ? WHERE id = ?',
+        [update.newAdmissionNo, update.studentId]
       );
     }
     
     await connection.commit();
     
-    console.log('✅ All student person_ids successfully renumbered!\n');
+    console.log('✅ All admission numbers successfully updated!\n');
     console.log('📋 Summary:');
     console.log(`   - Total students updated: ${updates.length}`);
-    console.log(`   - ID range: 1 to ${updates.length}`);
-    console.log(`   - All IDs now sequential and clean`);
-    console.log('\n✨ Person IDs have been reset to follow sequential numbering.');
-    console.log('   Any new students added will automatically get the next sequential ID.');
+    console.log(`   - Format: XHN/0001/${currentYear} through XHN/${String(updates.length).padStart(4, '0')}/${currentYear}`);
+    console.log(`   - All admission numbers now sequential and clean`);
+    console.log('\n✨ Admission numbers have been reset to follow XHN/#### format.');
+    console.log('   Any new students added will automatically get the next sequential number.');
     
   } catch (error) {
     console.error('❌ Error during renumbering:', error.message);
     if (connection) {
-      await connection.rollback();
-      console.log('⚠️  Transaction rolled back - no changes were made');
+      try {
+        await connection.rollback();
+        console.log('⚠️  Transaction rolled back - no changes were made');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError.message);
+      }
     }
     process.exit(1);
   } finally {
