@@ -1,7 +1,7 @@
 "use client";
 import React, { Fragment, useEffect, useState, useRef, useCallback } from 'react';
 import { Dialog, Transition, Listbox } from '@headlessui/react';
-import { X, ChevronsUpDown, Check, Loader2, Upload, Camera, User, AlertCircle, Image as ImageIcon, Download, BookOpen } from 'lucide-react';
+import { X, ChevronsUpDown, Check, Loader2, Upload, Camera, User, AlertCircle, Image as ImageIcon, Download, BookOpen, ChevronDown } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
@@ -150,6 +150,10 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
   const [admissionData, setAdmissionData] = useState<any>(null);
   const [schoolName, setSchoolName] = useState('Ibun Baz Girls Secondary School');
   const [tahfizAutoEnroll, setTahfizAutoEnroll] = useState(autoEnrollTahfiz);
+  
+  // Collapsible sections state
+  const [expandBiographic, setExpandBiographic] = useState(false);
+  const [expandPhoto, setExpandPhoto] = useState(false);
 
   const reset = () => { 
     setStep(0); 
@@ -808,66 +812,179 @@ export const StudentWizard:React.FC<{open:boolean; onClose:()=>void; onCreated?:
                   <button type="button" onClick={handleClose} className="ml-2 p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10"><X className="w-5 h-5"/></button>
                 </div>
                 
-                <div className="relative p-8 space-y-8">
+                <div className="relative p-8 space-y-4">
                   {step===0 && (
-                    <div className="grid md:grid-cols-3 gap-6">
-                      <Field label="First Name"><input value={first} onChange={e=>setFirst(e.target.value)} className={`${fieldCls} ${touchedNames && !first.trim()? 'ring-2 ring-red-500 border-red-500':''}`} /></Field>
-                      <Field label="Last Name"><input value={last} onChange={e=>setLast(e.target.value)} className={`${fieldCls} ${touchedNames && !last.trim()? 'ring-2 ring-red-500 border-red-500':''}`} /></Field>
-                      <Field label="Other Name (Optional)"><input value={otherName} onChange={e=>setOtherName(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Gender (Optional)"><select value={gender} onChange={e=>setGender(e.target.value)} className={fieldCls}><option value="">--</option><option value="M">Male</option><option value="F">Female</option></select></Field>
-                      <Field label="Date of Birth (Optional)"><input type="date" value={dob} onChange={e=>setDob(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Phone"><input value={phone} onChange={e=>setPhone(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Address"><input value={address} onChange={e=>setAddress(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Nationality"><input value={nationalityId} onChange={e=>setNationalityId(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Orphan Status"><select value={orphanStatus} onChange={e=>setOrphanStatus(e.target.value)} className={fieldCls}><option value="">--</option><option value="orphan">Orphan</option><option value="non_orphan">Non-Orphan</option></select></Field>
-                      <Field label="Living Status"><select value={livingStatus} onChange={e=>setLivingStatus(e.target.value)} className={fieldCls}><option value="">--</option><option value="alive">Alive</option><option value="deceased">Deceased</option></select></Field>
-                      <Field label="Juzus Memorized"><input value={noOfJuzus} onChange={e=>setNoOfJuzus(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Previous School"><input value={prevSchool} onChange={e=>setPrevSchool(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Previous School Year"><input value={prevSchoolYear} onChange={e=>setPrevSchoolYear(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Previous Theology Class"><input value={prevClassTheology} onChange={e=>setPrevClassTheology(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Previous Secular Class"><input value={prevClassSecular} onChange={e=>setPrevClassSecular(e.target.value)} className={fieldCls} /></Field>
-                      <Field label="Photo">
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={photoPreview ? photoPreview : '/default-avatar.png'} // Use default avatar if no photo is selected
-                            alt="Preview"
-                            className="w-20 h-20 object-cover rounded-full border"
-                          />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              if (e.target.files?.[0]) {
-                                setPhotoFile(e.target.files[0]); // Temporarily store the selected file
-                                setPhotoPreview(URL.createObjectURL(e.target.files[0]));
-                              }
-                            }}
-                            className={fieldCls}
-                          />
+                    <>
+                      {/* Required Names Section */}
+                      <div className="space-y-4 bg-gradient-to-br from-indigo-50/50 via-transparent to-fuchsia-50/30 dark:from-indigo-950/20 dark:via-transparent dark:to-fuchsia-950/10 px-4 py-5 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/30">
+                        <div className="mb-2">
+                          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Student Names *</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Required fields</p>
                         </div>
-                      </Field>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <Field label="First Name">
+                            <input 
+                              value={first} 
+                              onChange={e=>setFirst(e.target.value)} 
+                              placeholder="e.g., KAGWINYRWOTH"
+                              className={`${fieldCls} text-base font-semibold ${touchedNames && !first.trim()? 'ring-2 ring-red-500 border-red-500':''}`} 
+                            />
+                          </Field>
+                          <Field label="Last Name">
+                            <input 
+                              value={last} 
+                              onChange={e=>setLast(e.target.value)} 
+                              placeholder="e.g., PRISCILA"
+                              className={`${fieldCls} text-base font-semibold ${touchedNames && !last.trim()? 'ring-2 ring-red-500 border-red-500':''}`} 
+                            />
+                          </Field>
+                        </div>
+                        
+                        {/* Quick Submit Button - appears when names are filled */}
+                        {first.trim() && last.trim() && (
+                          <div className="flex gap-2 pt-3 border-t border-indigo-200/50 dark:border-indigo-800/30 mt-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (canNext()) next();
+                              }}
+                              className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                            >
+                              Add Details
+                            </button>
+                            <button
+                              type="button"
+                              disabled={loading || generatingPDF}
+                              onClick={submit}
+                              className="flex-1 relative px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
+                            >
+                              <span className={loading || generatingPDF ? 'opacity-0' : 'opacity-100'}>
+                                ✓ Enroll Now
+                              </span>
+                              {(loading || generatingPDF) && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                </span>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Biographical Information - Collapsible */}
+                      <div className="border border-gray-200/50 dark:border-gray-700/50 rounded-2xl overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandBiographic(!expandBiographic)}
+                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Biographical Information</h3>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">(optional)</span>
+                          </div>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${expandBiographic ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        {expandBiographic && (
+                          <div className="px-4 py-4 border-t border-gray-200/50 dark:border-gray-700/50 space-y-4 bg-gradient-to-b from-gray-50/50 dark:from-gray-900/20 to-transparent">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <Field label="Other Name"><input value={otherName} onChange={e=>setOtherName(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Gender">
+                                <select value={gender} onChange={e=>setGender(e.target.value)} className={fieldCls}>
+                                  <option value="">Select</option>
+                                  <option value="M">Male</option>
+                                  <option value="F">Female</option>
+                                </select>
+                              </Field>
+                              <Field label="Date of Birth"><input type="date" value={dob} onChange={e=>setDob(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Phone"><input value={phone} onChange={e=>setPhone(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Address" className="md:col-span-2"><input value={address} onChange={e=>setAddress(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Nationality"><input value={nationalityId} onChange={e=>setNationalityId(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Orphan Status">
+                                <select value={orphanStatus} onChange={e=>setOrphanStatus(e.target.value)} className={fieldCls}>
+                                  <option value="">--</option>
+                                  <option value="orphan">Orphan</option>
+                                  <option value="non_orphan">Non-Orphan</option>
+                                </select>
+                              </Field>
+                              <Field label="Living Status">
+                                <select value={livingStatus} onChange={e=>setLivingStatus(e.target.value)} className={fieldCls}>
+                                  <option value="">--</option>
+                                  <option value="alive">Alive</option>
+                                  <option value="deceased">Deceased</option>
+                                </select>
+                              </Field>
+                              <Field label="Place of Birth"><input value={placeBirth} onChange={e=>setPlaceBirth(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Place of Residence"><input value={placeResidence} onChange={e=>setPlaceResidence(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Juzus Memorized"><input value={noOfJuzus} onChange={e=>setNoOfJuzus(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Previous School"><input value={prevSchool} onChange={e=>setPrevSchool(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Previous School Year"><input value={prevSchoolYear} onChange={e=>setPrevSchoolYear(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Previous Theology Class"><input value={prevClassTheology} onChange={e=>setPrevClassTheology(e.target.value)} className={fieldCls} /></Field>
+                              <Field label="Previous Secular Class"><input value={prevClassSecular} onChange={e=>setPrevClassSecular(e.target.value)} className={fieldCls} /></Field>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Photo - Collapsible */}
+                      <div className="border border-gray-200/50 dark:border-gray-700/50 rounded-2xl overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandPhoto(!expandPhoto)}
+                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Photo</h3>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">(optional)</span>
+                          </div>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${expandPhoto ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        {expandPhoto && (
+                          <div className="px-4 py-4 border-t border-gray-200/50 dark:border-gray-700/50 space-y-4 bg-gradient-to-b from-gray-50/50 dark:from-gray-900/20 to-transparent">
+                            <div className="flex items-center gap-4">
+                              <img
+                                src={photoPreview ? photoPreview : '/default-avatar.png'}
+                                alt="Preview"
+                                className="w-20 h-20 object-cover rounded-full border"
+                              />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    setPhotoFile(e.target.files[0]);
+                                    setPhotoPreview(URL.createObjectURL(e.target.files[0]));
+                                  }
+                                }}
+                                className={fieldCls}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       
                       {/* Tahfiz Auto-Enrollment Option */}
                       {autoEnrollTahfiz && (
-                        <Field label="Tahfiz Program" className="md:col-span-3">
-                          <div className="flex items-center space-x-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                            <input
-                              type="checkbox"
-                              id="tahfiz-enroll"
-                              checked={tahfizAutoEnroll}
-                              onChange={(e) => setTahfizAutoEnroll(e.target.checked)}
-                              className="w-4 h-4 text-emerald-600 bg-white border-emerald-300 rounded focus:ring-emerald-500"
-                            />
+                        <div className="flex items-center space-x-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                          <input
+                            type="checkbox"
+                            id="tahfiz-enroll"
+                            checked={tahfizAutoEnroll}
+                            onChange={(e) => setTahfizAutoEnroll(e.target.checked)}
+                            className="w-4 h-4 text-emerald-600 bg-white border-emerald-300 rounded focus:ring-emerald-500"
+                          />
+                          <div className="flex-1">
                             <label htmlFor="tahfiz-enroll" className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
                               Automatically enroll in Tahfiz program
                             </label>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-300 mt-0.5">
+                              Student will be added to the default Tahfiz group and can start memorization tracking immediately.
+                            </p>
                           </div>
-                          <p className="text-xs text-emerald-600 mt-1">
-                            Student will be added to the default Tahfiz group and can start memorization tracking immediately.
-                          </p>
-                        </Field>
+                        </div>
                       )}
-                    </div>
+                    </>
                   )}
                   {step===1 && (
                     <div className="grid md:grid-cols-4 gap-6">

@@ -37,7 +37,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     <I18nProvider>
       <Navbar />
       <Sidebar />
-      <div className={`pt-16 md:pr-6 px-4 transition-all ${collapsed ? (pos==='left'? 'md:pl-16':'md:pr-16') : (pos==='left'? 'md:pl-64':'md:pr-64')}`} data-sidebar>
+      <div className={`pt-16 pb-16 md:pb-0 md:pr-6 px-4 transition-all ${collapsed ? (pos==='left'? 'md:pl-16':'md:pr-16') : (pos==='left'? 'md:pl-64':'md:pr-64')}`} data-sidebar>
         <main className="max-w-[1600px] mx-auto">
           {children}
           <Footer />
