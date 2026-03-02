@@ -168,8 +168,11 @@ export const StudentTable: React.FC = () => {
   const { data: streamData } = useSWRImmutable(`${API_BASE}/streams`, fetcher);
   const streamOptions = streamData?.data || [];
 
-  // Helper functions
-  const generateAdmissionNo = (id: number) => `XHN/${id.toString().padStart(4, '0')}/2025`;
+  // Helper functions - display admission number from student record
+  const getAdmissionNo = (student: any) => {
+    // Return the student's actual admission_no from the database
+    return student.admission_no || `XHN/${student.id.toString().padStart(4, '0')}/2025`;
+  };
 
   // Inline editing functions
   const startInlineEdit = (studentId: number, field: 'first_name' | 'last_name', currentValue: string) => {
@@ -792,7 +795,7 @@ export const StudentTable: React.FC = () => {
       ];
 
       const csvData = uniqueRows.map(student => [
-        generateAdmissionNo(student.id),
+        getAdmissionNo(student),
         student.first_name || '',
         student.last_name || '',
         student.other_name || '',
@@ -929,7 +932,7 @@ export const StudentTable: React.FC = () => {
 
       // Table data - use all filtered data, not just paginated
       const tableRows = filteredByLetter.map((row) => [
-        generateAdmissionNo(row.id),
+        getAdmissionNo(row),
         `${row.first_name} ${row.last_name}`,
         row.gender || '-',
         row.class_name || 'No Class',
@@ -1013,33 +1016,69 @@ export const StudentTable: React.FC = () => {
         </div>
       )}
 
-      {/* Clean Header Section - Prioritize Content Over Controls */}
-      <div className="space-y-2">
-        {/* Title and Summary Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md">
-                <Users className="w-4 h-4 text-white" />
-              </div>
-              Students
-            </h1>
-            <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
-              <span className="inline-flex items-center gap-2">
-                <span className="font-semibold text-blue-600 dark:text-blue-400">{total}</span>
-                <span>learners</span>
-              </span>
-              {selectedLearners.length > 0 && (
-                <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
-                  <CheckSquare className="w-3 h-3" />
-                  {selectedLearners.length} selected
+      {/* Clean Header Section - SINGLE ROW on Desktop: Title | Search | Filters | Actions */}
+      <div className="space-y-3">
+        {/* Unified Header - All controls on one row (responsive: stacks on mobile) */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          {/* Title Section - Left */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md">
+              <Users className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">Students</h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{total}</span> learners
+              </p>
+            </div>
+          </div>
+
+          {/* Search Input - Flex-grow to take available space */}
+          <div className="flex-1 min-w-0">
+            <div className="relative group">
+              <Search className={clsx("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors", isRTL ? "right-3" : "left-3")} />
+              <input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder={t('students.search', 'Search students...')}
+                className={clsx("input-field text-sm shadow-sm focus:shadow-md", isRTL ? "pr-9 pl-3" : "pl-9 pr-3")}
+              />
+            </div>
+          </div>
+
+          {/* Filter & A-Z Buttons - Center */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-medium text-sm flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {(selectedClass || selectedStream || selectedGender || selectedStatus) && (
+                <span className="bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold">
+                  {[selectedClass, selectedStream, selectedGender, selectedStatus].filter(Boolean).length}
                 </span>
               )}
-            </p>
+            </button>
+
+            <button
+              onClick={() => setShowAlphabetFilter(!showAlphabetFilter)}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors font-medium text-sm flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span className="text-xs font-bold">A–Z</span>
+              {selectedLetter && (
+                <span className="bg-pink-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold">
+                  ✓
+                </span>
+              )}
+            </button>
           </div>
-          
-          {/* Primary Actions - Clean and Focused */}
-          <div className="flex items-center gap-2">
+
+          {/* Primary Actions - Right */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Primary Action: Add Student */}
             <button
               onClick={() => {
@@ -1190,55 +1229,6 @@ export const StudentTable: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* Compact Filters Section */}
-      <div className="space-y-2">
-        {/* Compact Toolbar - Search | Filters | Alphabet Toggle | Add Student */}
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-          {/* Search Input */}
-          <div className="flex-1 min-w-0">
-            <div className="relative group">
-              <Search className={clsx("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200", isRTL ? "right-3" : "left-3")} />
-              <input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                placeholder={t('students.search', 'Search students...')}
-                className={clsx("input-field text-sm shadow-sm focus:shadow-md transition-all duration-200", isRTL ? "pr-9 pl-3" : "pl-9 pr-3")}
-              />
-            </div>
-          </div>
-          
-          {/* Filters Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {(selectedClass || selectedStream || selectedGender || selectedStatus) && (
-              <span className="bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold text-xs">
-                {[selectedClass, selectedStream, selectedGender, selectedStatus].filter(Boolean).length}
-              </span>
-            )}
-          </button>
-
-          {/* Alphabet Filter Toggle */}
-          <button
-            onClick={() => setShowAlphabetFilter(!showAlphabetFilter)}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
-          >
-            <span className="text-xs font-bold">A–Z</span>
-            {selectedLetter && (
-              <span className="bg-pink-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold">
-                ✓
-              </span>
-            )}
-          </button>
-        </div>
 
         {/* Filter Dropdowns - Collapsible */}
         <AnimatePresence>
@@ -1516,7 +1506,7 @@ export const StudentTable: React.FC = () => {
                           )}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                          {generateAdmissionNo(student.id)}
+                          {getAdmissionNo(student)}
                         </div>
                       </div>
 
@@ -1714,7 +1704,7 @@ export const StudentTable: React.FC = () => {
                       )}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                      {generateAdmissionNo(student.id)}
+                      {getAdmissionNo(student)}
                     </p>
                   </div>
                 </div>

@@ -123,8 +123,25 @@ async function enrollStudents() {
           studentId = existingStudent[0].id;
           console.log(`⚠️  Student record already exists (ID: ${studentId})`);
         } else {
-          // Generate admission number
-          admissionNo = `XHN/${personId.toString().padStart(4, '0')}/${new Date().getFullYear()}`;
+          // Generate sequential admission number for school and year
+          const year = new Date().getFullYear();
+          const [admRows] = await connection.execute(
+            `SELECT admission_no FROM students 
+             WHERE school_id = ? AND admission_no LIKE ? 
+             ORDER BY CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(admission_no, '/', 2), '/', -1) AS UNSIGNED) DESC 
+             LIMIT 1`,
+            [schoolId, `XHN/%/${year}`]
+          );
+          
+          let seq = 1;
+          if (admRows.length && admRows[0].admission_no) {
+            const parts = admRows[0].admission_no.split('/');
+            const num = parseInt(parts[1] || '0', 10);
+            seq = num + 1;
+          }
+          
+          const padded = String(seq).padStart(4, '0');
+          admissionNo = `XHN/${padded}/${year}`;
           
           // Insert into students table
           const [studentResult] = await connection.execute(
