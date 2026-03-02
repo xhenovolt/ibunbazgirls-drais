@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import { usePathname } from 'next/navigation';
 import useSWR from 'swr';
 import BellClient from '@/components/notifications/BellClient';
+import NavbarSearch from './NavbarSearch';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3000/api';
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -145,14 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
 
           {/* Center Section - Search */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder={t('common.search')}
-                className="w-full pl-10 rtl:pl-4 rtl:pr-10 pr-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 border-0 focus:ring-2 focus:ring-[var(--color-primary)] focus:bg-white dark:focus:bg-slate-700 transition-all placeholder-gray-500 dark:placeholder-gray-400"
-              />
-            </div>
+            <NavbarSearch />
           </div>
 
           {/* Right Section */}
@@ -334,15 +328,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900"
             >
               <div className="p-4">
-                <div className="relative">
-                  <Search className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t('common.search')}
-                    className="w-full pl-10 rtl:pl-4 rtl:pr-10 pr-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 border-0 focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
-                    autoFocus
-                  />
-                </div>
+                <NavbarSearch isMobile={true} />
               </div>
             </motion.div>
           )}
