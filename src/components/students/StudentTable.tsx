@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
-import { Plus, Search, Loader2, Printer, FileDown, FileUp, Edit, Trash, Eye, MoreVertical, Filter, Users, UserCheck, UserX, UserMinus, Clock, CheckSquare, Square, Camera, Upload, Home, Thermometer, Fingerprint, ChevronRight } from 'lucide-react';
+import { Plus, Search, Loader2, Printer, FileDown, FileUp, Edit, Trash, Eye, MoreVertical, Filter, Users, UserCheck, UserX, UserMinus, Clock, CheckSquare, Square, Camera, Upload, Home, Thermometer, Fingerprint, ChevronRight, X } from 'lucide-react';
 import clsx from 'clsx';
 import { StudentWizard } from './StudentWizard';
 import { EditStudentWizard } from './EditStudentWizard';
@@ -111,6 +111,7 @@ export const StudentTable: React.FC = () => {
   const [photoEditorOpen, setPhotoEditorOpen] = useState(false);
   const [photoEditorStudent, setPhotoEditorStudent] = useState<Student | null>(null);
   const [fingerprintStatuses, setFingerprintStatuses] = useState<Record<number, {hasFingerprint: boolean, loading: boolean, lastFetched?: number}>>({});
+  const [dismissedDemoBanner, setDismissedDemoBanner] = useState(false);
   
   // Inline editing state
   const [editingCell, setEditingCell] = useState<{studentId: number, field: 'first_name' | 'last_name'} | null>(null);
@@ -1004,14 +1005,23 @@ export const StudentTable: React.FC = () => {
   return (
     <div className="space-y-3 p-4 sm:p-6 lg:p-8 gradient-bg min-h-screen">
       {/* Add demo mode banner at the top if in development */}
-      {process.env.NODE_ENV !== 'production' && (
+      {process.env.NODE_ENV !== 'production' && !dismissedDemoBanner && (
         <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <Info className="w-4 h-4 text-amber-600" />
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              <strong>Demo Environment:</strong> Fingerprint features are accessible for demonstration. 
-              Real biometric capture is enabled but data is stored temporarily.
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Demo Environment:</strong> Fingerprint features are accessible for demonstration. 
+                Real biometric capture is enabled but data is stored temporarily.
+              </p>
+            </div>
+            <button
+              onClick={() => setDismissedDemoBanner(true)}
+              className="ml-2 p-1 rounded-md text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors flex-shrink-0"
+              aria-label="Close demo banner"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
