@@ -235,21 +235,23 @@ const DualSelect:React.FC<{label:string; value?:ClassRec; onChange:(v:ClassRec)=
   const accentCls = accent==='theology' ? 'from-emerald-500/20 to-teal-500/10 ring-emerald-500/40' : 'from-indigo-500/20 to-fuchsia-500/10 ring-fuchsia-500/40';
   return (
     <Listbox value={value} onChange={onChange}>
-      <div className="space-y-1">
+      <div className="space-y-1 relative">
         <Listbox.Label className="block text-[11px] font-semibold uppercase tracking-wide mb-1">{label}</Listbox.Label>
-        <div className={`relative rounded-xl border border-white/40 dark:border-white/10 bg-gradient-to-br ${accentCls} backdrop-blur px-3 py-2 cursor-pointer`}>
+        <div className={`relative z-0 rounded-xl border border-white/40 dark:border-white/10 bg-gradient-to-br ${accentCls} backdrop-blur px-3 py-2 cursor-pointer`}>
           <Listbox.Button className="flex w-full items-center justify-between text-left text-sm font-medium">
             <span className="truncate">{value? value.name : 'Select class'}</span>
             <ChevronsUpDown className="w-4 h-4 opacity-60"/>
           </Listbox.Button>
           <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <Listbox.Options className="absolute z-10 mt-2 left-0 right-0 max-h-60 overflow-auto rounded-xl border border-white/30 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-xl p-1 text-sm">
+            <Listbox.Options as="div" className="absolute z-50 top-full left-0 right-0 mt-2 max-h-72 overflow-y-auto overflow-x-hidden rounded-xl border border-white/30 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl p-1 text-sm ring-1 ring-black/5 dark:ring-white/10">
               {options.map(o => (
-                <Listbox.Option key={o.id} value={o} className={({active,selected})=>`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer ${active? 'bg-black/5 dark:bg-white/10':''} ${selected? 'text-fuchsia-600 dark:text-fuchsia-400 font-semibold':''}`}>
-                  {({selected}) => (<>
-                    <span className="flex-1 truncate">{o.name}</span>
-                    {selected && <Check className="w-4 h-4"/>}
-                  </>)}
+                <Listbox.Option key={o.id} value={o} as={Fragment}>
+                  {({active,selected})=>(
+                    <button type="button" className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-left transition-colors ${active? 'bg-fuchsia-100/50 dark:bg-fuchsia-900/30':''} ${selected? 'text-fuchsia-600 dark:text-fuchsia-400 font-semibold bg-fuchsia-50/50 dark:bg-fuchsia-900/20':''}`}>
+                      <span className="flex-1 truncate">{o.name}</span>
+                      {selected && <Check className="w-4 h-4 flex-shrink-0"/>}
+                    </button>
+                  )}
                 </Listbox.Option>
               ))}
               {options.length===0 && <div className="px-3 py-4 text-center text-xs text-slate-500">No classes</div>}

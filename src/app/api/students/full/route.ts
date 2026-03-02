@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { getSchoolInfo } from '@/lib/schoolConfig';
+import { getNextAdmissionNumber, formatAdmissionNumber } from '@/lib/admissionNumber';
 import path from 'path';
 import fs from 'fs/promises';
 import puppeteer from 'puppeteer';
@@ -75,16 +76,19 @@ export async function GET(req: NextRequest) {
 
     const params: any[] = [];
 
-    // Add search filter
-    if (query) {
+    // Add search filter with normalization
+    if (query && query.trim()) {
+      // Trim and normalize search query
+      const normalizedQuery = query.trim().toLowerCase();
+      const searchTerm = `%${normalizedQuery}%`;
+      
       sql += ` AND (
-        p.first_name LIKE ? OR 
-        p.last_name LIKE ? OR 
-        p.other_name LIKE ? OR
-        s.admission_no LIKE ? OR
-        CONCAT(p.first_name, ' ', p.last_name) LIKE ?
+        LOWER(p.first_name) LIKE LOWER(?) OR 
+        LOWER(p.last_name) LIKE LOWER(?) OR 
+        LOWER(p.other_name) LIKE LOWER(?) OR
+        LOWER(s.admission_no) LIKE LOWER(?) OR
+        LOWER(CONCAT(p.first_name, ' ', p.last_name)) LIKE LOWER(?)
       )`;
-      const searchTerm = `%${query}%`;
       params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
@@ -187,8 +191,12 @@ export async function POST(req: NextRequest) {
       );
       const newPersonId = personResult.insertId;
       
-      // Generate admission number if not provided
-      const admission_no = body.admission_no || `XHN/${newPersonId.toString().padStart(4, '0')}/${new Date().getFullYear()}`;
+      // Generate sequential admission number if not provided
+      let admission_no = body.admission_no;
+      if (!admission_no) {
+        const nextSeq = await getNextAdmissionNumber(body.school_id || 1);
+        admission_no = formatAdmissionNumber(nextSeq, body.school_id || 1);
+      }
       
       // Insert student
       const [studentResult]: any = await connection.execute(

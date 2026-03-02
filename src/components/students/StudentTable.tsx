@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
-import { Plus, Search, Loader2, Printer, FileDown, FileUp, Edit, Trash, Eye, MoreVertical, Filter, Users, UserCheck, UserX, UserMinus, Clock, CheckSquare, Square, Camera, Upload, Home, Thermometer, Fingerprint } from 'lucide-react';
+import { Plus, Search, Loader2, Printer, FileDown, FileUp, Edit, Trash, Eye, MoreVertical, Filter, Users, UserCheck, UserX, UserMinus, Clock, CheckSquare, Square, Camera, Upload, Home, Thermometer, Fingerprint, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { StudentWizard } from './StudentWizard';
 import { EditStudentWizard } from './EditStudentWizard';
@@ -82,6 +82,7 @@ export const StudentTable: React.FC = () => {
   
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -102,7 +103,7 @@ export const StudentTable: React.FC = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [showAlphabetFilter, setShowAlphabetFilter] = useState(false);
   const [showBulkPhotoUpload, setShowBulkPhotoUpload] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<'suspend' | 'expel' | null>(null);
@@ -144,7 +145,22 @@ export const StudentTable: React.FC = () => {
   const rows: Student[] = data?.data || [];
   const total = rows.length;
   const rowsPerPage = 10;
-  const pages = Math.ceil(total / rowsPerPage) || 1;
+
+  // Data processing - single source of truth
+  const uniqueRows = rows.filter(
+    (student, index, self) => self.findIndex((s) => s.id === student.id) === index
+  );
+  
+  // Apply alphabetical filter
+  const filteredByLetter = selectedLetter
+    ? uniqueRows.filter(student => 
+        student.first_name?.toUpperCase().startsWith(selectedLetter)
+      )
+    : uniqueRows;
+  
+  const totalFiltered = filteredByLetter.length;
+  const pages = Math.ceil(totalFiltered / rowsPerPage) || 1;
+  const paginatedRows = filteredByLetter.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const { data: classData } = useSWRImmutable(`${API_BASE}/classes`, fetcher);
   const classOptions = classData?.data || [];
@@ -352,14 +368,9 @@ export const StudentTable: React.FC = () => {
     setSelectedStream('');
     setSelectedGender('');
     setSelectedStatus('');
+    setSelectedLetter(null);
     setPage(1);
   };
-
-  // Data processing - single source of truth
-  const uniqueRows = rows.filter(
-    (student, index, self) => self.findIndex((s) => s.id === student.id) === index
-  );
-  const paginatedRows = uniqueRows.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   // Event handlers
   const handleEdit = (student: Student) => {
@@ -736,7 +747,6 @@ export const StudentTable: React.FC = () => {
         });
         setSelectedLearners([]);
         setBulkClass('');
-        setShowBulkActions(false);
         mutate();
       } else {
         Swal.fire('Error', result.error || 'Failed to assign class.', 'error');
@@ -900,7 +910,7 @@ export const StudentTable: React.FC = () => {
       if (selectedGender) filterInfo.push(`Gender: ${selectedGender}`);
       if (selectedStatus) filterInfo.push(`Status: ${selectedStatus}`);
       if (query) filterInfo.push(`Search: "${query}"`);
-      
+      if (selectedLetter) filterInfo.push(`Name starts with: ${selectedLetter}`);
       if (filterInfo.length > 0) {
         doc.text(`Filters: ${filterInfo.join(', ')}`, 20, 40);
       }
@@ -918,7 +928,7 @@ export const StudentTable: React.FC = () => {
       ];
 
       // Table data - use all filtered data, not just paginated
-      const tableRows = uniqueRows.map((row) => [
+      const tableRows = filteredByLetter.map((row) => [
         generateAdmissionNo(row.id),
         `${row.first_name} ${row.last_name}`,
         row.gender || '-',
@@ -989,7 +999,7 @@ export const StudentTable: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 gradient-bg min-h-screen">
+    <div className="space-y-3 p-4 sm:p-6 lg:p-8 gradient-bg min-h-screen">
       {/* Add demo mode banner at the top if in development */}
       {process.env.NODE_ENV !== 'production' && (
         <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -1003,235 +1013,252 @@ export const StudentTable: React.FC = () => {
         </div>
       )}
 
-      {/* Header Section with enhanced enterprise styling */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
-              <Users className="w-5 h-5 text-white" />
-            </div>
-            {t('students.title', 'Students')}
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1">
-              {t('students.total', 'Total')}: 
-              <span className="font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {total}
-              </span> 
-              learners
-            </span>
-            {selectedLearners.length > 0 && (
-              <span className="inline-flex items-center gap-1 px-4 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
-                <CheckSquare className="w-3 h-3" />
-                {selectedLearners.length} selected
+      {/* Clean Header Section - Prioritize Content Over Controls */}
+      <div className="space-y-2">
+        {/* Title and Summary Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="space-y-0.5">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md">
+                <Users className="w-4 h-4 text-white" />
+              </div>
+              Students
+            </h1>
+            <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
+              <span className="inline-flex items-center gap-2">
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{total}</span>
+                <span>learners</span>
               </span>
-            )}
-          </p>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2 mobile-stack">
-          <button
-            onClick={() => {
-              setSelectedStudent(null);
-              setIsEditing(false);
-              setOpen(true);
-            }}
-            className="btn-primary bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 focus:ring-4 focus:ring-indigo-300"
-          >
-            <Plus className="w-4 h-4" />
-            {t('students.add', 'Add Student')}
-          </button>
-
-          {selectedLearners.length > 0 && (
-            <button
-              onClick={() => setShowBulkActions(!showBulkActions)}
-              className="btn-accent bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 focus:ring-4 focus:ring-blue-300"
-            >
-              <CheckSquare className="w-4 h-4" />
-              Bulk Actions ({selectedLearners.length})
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowBulkPhotoUpload(true)}
-            className="btn-secondary bg-gradient-to-r from-gray-700 to-gray-900 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 focus:ring-4 focus:ring-gray-500"
-          >
-            <Camera className="w-4 h-4" />
-            Bulk Photos
-          </button>
+              {selectedLearners.length > 0 && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+                  <CheckSquare className="w-3 h-3" />
+                  {selectedLearners.length} selected
+                </span>
+              )}
+            </p>
+          </div>
           
-          <button
-            onClick={() => setImportOpen(true)}
-            className="btn-secondary bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 focus:ring-4 focus:ring-green-300"
-          >
-            <FileUp className="w-4 h-4" />
-            {t('common.import', 'Import')}
-          </button>
-          
-          {/* Export Dropdown */}
-          <div className="relative group">
+          {/* Primary Actions - Clean and Focused */}
+          <div className="flex items-center gap-2">
+            {/* Primary Action: Add Student */}
             <button
-              onClick={() => handleExport('excel')}
-              className="btn-secondary bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 focus:ring-4 focus:ring-yellow-300"
+              onClick={() => {
+                setSelectedStudent(null);
+                setIsEditing(false);
+                setOpen(true);
+              }}
+              className="btn-primary bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-200 focus:ring-4 focus:ring-indigo-300 font-medium text-sm"
             >
-              <FileDown className="w-4 h-4" />
-              Export
+              <Plus className="w-5 h-5" />
+              Add Student
             </button>
-            
-            {/* Export format dropdown */}
-            <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-              <div className="p-2">
+
+            {/* Secondary Actions Dropdown */}
+            <div className="relative group">
+              <button
+                className="px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors duration-200 font-medium text-sm"
+                title="More actions"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+              
+              {/* Dropdown Menu */}
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 py-1">
+                {/* Import */}
                 <button
-                  onClick={() => handleExport('excel')}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md flex items-center gap-2"
+                  onClick={() => setImportOpen(true)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors duration-150"
                 >
-                  <FileDown className="w-4 h-4" />
-                  Export as Excel (.xlsx)
+                  <FileUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  Import Students
                 </button>
+
+                {/* Export */}
+                <div className="relative group/export">
+                  <button
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors duration-150"
+                  >
+                    <FileDown className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                    Export Students
+                    <ChevronRight className="w-4 h-4 ml-auto" />
+                  </button>
+                  
+                  {/* Export submenu */}
+                  <div className="absolute left-full top-0 ml-0 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 opacity-0 invisible group-hover/export:opacity-100 group-hover/export:visible transition-all duration-200 z-20 py-1">
+                    <button
+                      onClick={() => handleExport('excel')}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-150"
+                    >
+                      Export as Excel
+                    </button>
+                    <button
+                      onClick={() => handleExport('csv')}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-150"
+                    >
+                      Export as CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bulk Photo Upload */}
                 <button
-                  onClick={() => handleExport('csv')}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md flex items-center gap-2"
+                  onClick={() => setShowBulkPhotoUpload(true)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors duration-150"
                 >
-                  <FileDown className="w-4 h-4" />
-                  Export as CSV
+                  <Camera className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  Bulk Photo Upload
+                </button>
+
+                {/* Print */}
+                <button
+                  onClick={handlePrint}
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors duration-150"
+                >
+                  <Printer className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  Print List
+                </button>
+
+                {/* Divider */}
+                <div className="my-1 border-t border-gray-200 dark:border-slate-700"></div>
+
+                {/* Attendance */}
+                <button
+                  onClick={() => router.push('/attendance')}
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors duration-150"
+                >
+                  <UserCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  Mark Attendance
                 </button>
               </div>
             </div>
           </div>
-          
-          <button
-            onClick={handlePrint}
-            className="btn-secondary bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 focus:ring-4 focus:ring-red-300"
-          >
-            <Printer className="w-4 h-4" />
-            {t('common.print', 'Print')}
-          </button>
-
-          <button
-            onClick={() => router.push('/attendance')}
-            className="btn-accent bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-transform duration-200 focus:ring-4 focus:ring-teal-300"
-          >
-            <UserCheck className="w-4 h-4" />
-            Take Attendance
-          </button>
         </div>
-      </div>
 
-      {/* Bulk Actions Panel */}
-      <AnimatePresence>
-        {showBulkActions && selectedLearners.length > 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0, y: -10 }}
-            animate={{ height: 'auto', opacity: 1, y: 0 }}
-            exit={{ height: 0, opacity: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: [0.0, 0.0, 0.2, 1] as [number, number, number, number] }}
-            className="overflow-hidden"
-          >
-            <div className="card-glass p-6 border-l-4 border-blue-500 dark:border-blue-400 shadow-lg">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-blue-500 flex items-center justify-center">
-                      <Users className="w-3 h-3 text-white" />
-                    </div>
-                    Bulk Actions - {selectedLearners.length} students selected
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Assign selected students to a class or perform other bulk operations.
-                  </p>
-                </div>
-                
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <select
-                    value={bulkClass}
-                    onChange={(e) => setBulkClass(e.target.value)}
-                    className="input-field flex-1 sm:w-48 shadow-sm focus:shadow-md transition-shadow duration-200"
-                  >
-                    <option value="">Select Class...</option>
-                    {classOptions.map((cls: any) => (
-                      <option key={`class-${cls.id}`} value={cls.id}>
-                        {cls.name}
-                      </option>
-                    ))}
-                  </select>
+        {/* Bulk Actions Panel - Only Show When Items Selected */}
+        <AnimatePresence>
+          {selectedLearners.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0, y: -10 }}
+              animate={{ height: 'auto', opacity: 1, y: 0 }}
+              exit={{ height: 0, opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 dark:border-blue-400">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {selectedLearners.length} student{selectedLearners.length !== 1 ? 's' : ''} selected
+                    </p>
+                  </div>
                   
-                  <button
-                    onClick={handleBulkAssign}
-                    disabled={!bulkClass}
-                    className="btn-primary gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200"
-                  >
-                    <Users className="w-4 h-4" />
-                    Assign Class
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      setSelectedLearners([]);
-                      setShowBulkActions(false);
-                      setBulkClass('');
-                    }}
-                    className="btn-secondary shadow-lg hover:shadow-xl transition-all duration-200"
-                  >
-                    Cancel
-                  </button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <select
+                      value={bulkClass}
+                      onChange={(e) => setBulkClass(e.target.value)}
+                      className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select class...</option>
+                      {classOptions.map((cls: any) => (
+                        <option key={`class-${cls.id}`} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    <button
+                      onClick={handleBulkAssign}
+                      disabled={!bulkClass}
+                      className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap"
+                    >
+                      Assign Class
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setSelectedLearners([]);
+                        setBulkClass('');
+                      }}
+                      className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors duration-200 whitespace-nowrap"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Enhanced Filters Section */}
-      <div className="card-glass p-4 sm:p-6 space-y-4 shadow-lg">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+      {/* Compact Filters Section */}
+      <div className="space-y-2">
+        {/* Compact Toolbar - Search | Filters | Alphabet Toggle | Add Student */}
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+          {/* Search Input */}
+          <div className="flex-1 min-w-0">
             <div className="relative group">
-              <Search className={clsx("absolute top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200", isRTL ? "right-3" : "left-3")} />
+              <Search className={clsx("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200", isRTL ? "right-3" : "left-3")} />
               <input
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder={t('students.search', 'Search by name, ID, or class...')}
-                className={clsx("input-field shadow-sm focus:shadow-md transition-all duration-200", isRTL ? "pr-10 pl-4" : "pl-10 pr-4")}
+                placeholder={t('students.search', 'Search students...')}
+                className={clsx("input-field text-sm shadow-sm focus:shadow-md transition-all duration-200", isRTL ? "pr-9 pl-3" : "pl-9 pr-3")}
               />
             </div>
           </div>
           
+          {/* Filters Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="btn-secondary gap-2 min-w-fit shadow-lg hover:shadow-xl transition-all duration-200"
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
           >
             <Filter className="w-4 h-4" />
             Filters
             {(selectedClass || selectedStream || selectedGender || selectedStatus) && (
-              <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-inner">
+              <span className="bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold text-xs">
                 {[selectedClass, selectedStream, selectedGender, selectedStatus].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+
+          {/* Alphabet Filter Toggle */}
+          <button
+            onClick={() => setShowAlphabetFilter(!showAlphabetFilter)}
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-200 font-medium text-sm flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
+          >
+            <span className="text-xs font-bold">A–Z</span>
+            {selectedLetter && (
+              <span className="bg-pink-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold">
+                ✓
               </span>
             )}
           </button>
         </div>
 
-        {/* Enhanced filter dropdowns with smooth animations */}
+        {/* Filter Dropdowns - Collapsible */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                {/* Enhanced select inputs with better styling */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+                {/* Compact select inputs */}
                 <select
                   value={selectedClass}
                   onChange={(e) => {
                     setSelectedClass(e.target.value);
                     setPage(1);
                   }}
-                  className="input-field shadow-sm focus:shadow-md transition-all duration-200"
+                  className="input-field text-sm shadow-sm focus:shadow-md transition-all duration-200"
                 >
                   <option value="">All Classes</option>
                   {classOptions.map((cls: any) => (
@@ -1247,7 +1274,7 @@ export const StudentTable: React.FC = () => {
                     setSelectedStream(e.target.value);
                     setPage(1);
                   }}
-                  className="input-field shadow-sm focus:shadow-md transition-all duration-200"
+                  className="input-field text-sm shadow-sm focus:shadow-md transition-all duration-200"
                 >
                   <option value="">All Streams</option>
                   {streamOptions.map((stream: any) => (
@@ -1263,7 +1290,7 @@ export const StudentTable: React.FC = () => {
                     setSelectedGender(e.target.value);
                     setPage(1);
                   }}
-                  className="input-field shadow-sm focus:shadow-md transition-all duration-200"
+                  className="input-field text-sm shadow-sm focus:shadow-md transition-all duration-200"
                 >
                   <option value="">All Genders</option>
                   <option value="male">Male</option>
@@ -1276,7 +1303,7 @@ export const StudentTable: React.FC = () => {
                     setSelectedStatus(e.target.value);
                     setPage(1);
                   }}
-                  className="input-field shadow-sm focus:shadow-md transition-all duration-200"
+                  className="input-field text-sm shadow-sm focus:shadow-md transition-all duration-200"
                 >
                   <option value="">All Status</option>
                   {statusOptions.map((status) => (
@@ -1286,14 +1313,67 @@ export const StudentTable: React.FC = () => {
                   ))}
                 </select>
               </div>
-
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-end pt-2 border-t border-gray-200 dark:border-slate-700">
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200 hover:underline"
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200 hover:underline"
                 >
-                  Clear all filters
+                  Clear all
                 </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Alphabetical Filter - Compact Collapsible */}
+        <AnimatePresence>
+          {showAlphabetFilter && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    onClick={() => {
+                      setSelectedLetter(null);
+                      setPage(1);
+                    }}
+                    className={clsx(
+                      'px-2 py-1 rounded text-xs font-semibold transition-all',
+                      !selectedLetter
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md scale-105'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                    )}
+                  >
+                    All
+                  </button>
+                  {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => (
+                    <button
+                      key={letter}
+                      onClick={() => {
+                        setSelectedLetter(letter);
+                        setPage(1);
+                      }}
+                      className={clsx(
+                        'px-1.5 py-1 rounded text-xs font-semibold transition-all min-w-[1.75rem]',
+                        selectedLetter === letter
+                          ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow-md scale-105'
+                          : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      )}
+                    >
+                      {letter}
+                    </button>
+                  ))}
+                </div>
+                {selectedLetter && (
+                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    Showing <span className="font-semibold text-gray-900 dark:text-white">{selectedLetter}</span> · {totalFiltered} result{totalFiltered !== 1 ? 's' : ''}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
