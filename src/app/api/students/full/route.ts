@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('q') || '';
+    const schoolId = parseInt(searchParams.get('school_id') || '1');
     const classId = searchParams.get('class_id');
     const streamId = searchParams.get('stream_id');
     const gender = searchParams.get('gender');
@@ -71,10 +72,10 @@ export async function GET(req: NextRequest) {
       LEFT JOIN subcounties sc ON pa.subcounty_id = sc.id
       LEFT JOIN counties co ON sc.county_id = co.id
       LEFT JOIN districts d ON co.district_id = d.id
-      WHERE s.deleted_at IS NULL
+      WHERE s.deleted_at IS NULL AND s.school_id = ?
     `;
 
-    const params: any[] = [];
+    const params: any[] = [schoolId];
 
     // Add search filter with normalization
     if (query && query.trim()) {
