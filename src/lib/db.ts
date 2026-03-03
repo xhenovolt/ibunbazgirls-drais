@@ -41,7 +41,7 @@ async function initializeDatabase() {
       password: tidbConfig.password,
       database: tidbConfig.database,
       ssl: { rejectUnauthorized: false },
-      connectionTimeout: 5000,
+      connectTimeout: 5000,
     });
     await testConn.query('SELECT 1');
     await testConn.end();
@@ -60,7 +60,7 @@ async function initializeDatabase() {
         user: mysqlConfig.user,
         password: mysqlConfig.password,
         database: mysqlConfig.database,
-        connectionTimeout: 5000,
+        connectTimeout: 5000,
       });
       await testConn.query('SELECT 1');
       await testConn.end();
