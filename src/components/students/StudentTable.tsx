@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
-import { Plus, Search, Loader2, Printer, FileDown, FileUp, Edit, Trash, Eye, MoreVertical, Filter, Users, UserCheck, UserX, UserMinus, Clock, CheckSquare, Square, Camera, Upload, Home, Thermometer, Fingerprint, ChevronRight, X } from 'lucide-react';
+import { Plus, Search, Loader2, Printer, FileDown, FileUp, Edit, Trash, Eye, MoreVertical, Filter, Users, UserCheck, UserX, UserMinus, Clock, CheckSquare, Square, Camera, Upload, Home, Thermometer, Fingerprint, ChevronRight, X, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
 import { StudentWizard } from './StudentWizard';
 import { EditStudentWizard } from './EditStudentWizard';
@@ -12,6 +12,7 @@ import { ImportModal } from './ImportModal';
 import { BulkPhotoUploadModal } from './BulkPhotoUploadModal';
 import { StatusActionModal } from './StatusActionModal';
 import { FingerprintModal } from './FingerprintModal';
+import DuplicatesManager from './DuplicatesManager';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -112,6 +113,7 @@ export const StudentTable: React.FC = () => {
   const [photoEditorStudent, setPhotoEditorStudent] = useState<Student | null>(null);
   const [fingerprintStatuses, setFingerprintStatuses] = useState<Record<number, {hasFingerprint: boolean, loading: boolean, lastFetched?: number}>>({});
   const [dismissedDemoBanner, setDismissedDemoBanner] = useState(false);
+  const [showDuplicatesManager, setShowDuplicatesManager] = useState(false);
   
   // Inline editing state
   const [editingCell, setEditingCell] = useState<{studentId: number, field: 'first_name' | 'last_name'} | null>(null);
@@ -120,24 +122,7 @@ export const StudentTable: React.FC = () => {
   
   const router = useRouter();
 
-  // Effect to handle clicking outside of editing input
-  useEffect(() => {
-    if (!editingCell || isUpdating) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      // Check if the click is on an input or if we're in the middle of an update
-      if (!target.closest('input[type="text"]') && !target.closest('.inline-edit-container')) {
-        saveInlineEdit();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [editingCell?.studentId, editingCell?.field, isUpdating]);
-
+  // SWR Hook - define early so data is available for other functions
   const { data, isLoading, mutate } = useSWR(
     `${API_BASE}/students/full?q=${encodeURIComponent(query)}${selectedClass ? `&class_id=${selectedClass}` : ''}${selectedStream ? `&stream_id=${selectedStream}` : ''}${selectedGender ? `&gender=${selectedGender}` : ''}${selectedStatus ? `&status=${selectedStatus}` : ''}`,
     fetcher
@@ -163,31 +148,8 @@ export const StudentTable: React.FC = () => {
   const pages = Math.ceil(totalFiltered / rowsPerPage) || 1;
   const paginatedRows = filteredByLetter.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  const { data: classData } = useSWRImmutable(`${API_BASE}/classes`, fetcher);
-  const classOptions = classData?.data || [];
-
-  const { data: streamData } = useSWRImmutable(`${API_BASE}/streams`, fetcher);
-  const streamOptions = streamData?.data || [];
-
-  // Helper functions - display admission number from student record
-  const getAdmissionNo = (student: any) => {
-    // Return the student's actual admission_no from the database
-    return student.admission_no || `XHN/${student.id.toString().padStart(4, '0')}/2025`;
-  };
-
-  // Inline editing functions
-  const startInlineEdit = (studentId: number, field: 'first_name' | 'last_name', currentValue: string) => {
-    if (isUpdating || editingCell) return; // Prevent editing while update is in progress or another cell is being edited
-    setEditingCell({ studentId, field });
-    setEditingValue(currentValue);
-  };
-
-  const cancelInlineEdit = () => {
-    setEditingCell(null);
-    setEditingValue('');
-  };
-
-  const saveInlineEdit = async () => {
+  // Inline editing - save on blur
+  const saveInlineEditCallback = async () => {
     if (!editingCell || isUpdating) return;
     
     const student = rows.find(s => s.id === editingCell.studentId);
@@ -253,10 +215,52 @@ export const StudentTable: React.FC = () => {
     }
   };
 
+  // Effect to handle clicking outside of editing input
+  useEffect(() => {
+    if (!editingCell || isUpdating) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      // Check if the click is on an input or if we're in the middle of an update
+      if (!target.closest('input[type="text"]') && !target.closest('.inline-edit-container')) {
+        saveInlineEditCallback();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [editingCell?.studentId, editingCell?.field, isUpdating]);
+
+  const { data: classData } = useSWRImmutable(`${API_BASE}/classes`, fetcher);
+  const classOptions = classData?.data || [];
+
+  const { data: streamData } = useSWRImmutable(`${API_BASE}/streams`, fetcher);
+  const streamOptions = streamData?.data || [];
+
+  // Helper functions - display admission number from student record
+  const getAdmissionNo = (student: any) => {
+    // Return the student's actual admission_no from the database
+    return student.admission_no || `XHN/${student.id.toString().padStart(4, '0')}/2025`;
+  };
+
+  // Inline editing functions
+  const startInlineEdit = (studentId: number, field: 'first_name' | 'last_name', currentValue: string) => {
+    if (isUpdating || editingCell) return; // Prevent editing while update is in progress or another cell is being edited
+    setEditingCell({ studentId, field });
+    setEditingValue(currentValue);
+  };
+
+  const cancelInlineEdit = () => {
+    setEditingCell(null);
+    setEditingValue('');
+  };
+
   const handleInlineEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      saveInlineEdit();
+      saveInlineEditCallback();
     } else if (e.key === 'Escape') {
       e.preventDefault();
       cancelInlineEdit();
@@ -1158,6 +1162,15 @@ export const StudentTable: React.FC = () => {
                   Bulk Photo Upload
                 </button>
 
+                {/* Manage Duplicates */}
+                <button
+                  onClick={() => setShowDuplicatesManager(true)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors duration-150"
+                >
+                  <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  Find & Merge Duplicates
+                </button>
+
                 {/* Print */}
                 <button
                   onClick={handlePrint}
@@ -1473,7 +1486,7 @@ export const StudentTable: React.FC = () => {
                                 type="text"
                                 value={editingValue}
                                 onChange={(e) => setEditingValue(e.target.value)}
-                                onBlur={saveInlineEdit}
+                                onBlur={saveInlineEditCallback}
                                 onKeyDown={handleInlineEditKeyDown}
                                 className="border-2 border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 text-sm font-medium bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 min-w-0 w-auto"
                                 autoFocus
@@ -1497,7 +1510,7 @@ export const StudentTable: React.FC = () => {
                                 type="text"
                                 value={editingValue}
                                 onChange={(e) => setEditingValue(e.target.value)}
-                                onBlur={saveInlineEdit}
+                                onBlur={saveInlineEditCallback}
                                 onKeyDown={handleInlineEditKeyDown}
                                 className="border-2 border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 text-sm font-medium bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 min-w-0 w-auto"
                                 autoFocus
@@ -1671,7 +1684,7 @@ export const StudentTable: React.FC = () => {
                             type="text"
                             value={editingValue}
                             onChange={(e) => setEditingValue(e.target.value)}
-                            onBlur={saveInlineEdit}
+                            onBlur={saveInlineEditCallback}
                             onKeyDown={handleInlineEditKeyDown}
                             className="border-2 border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 text-sm font-semibold bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 min-w-0 w-auto"
                             autoFocus
@@ -1695,7 +1708,7 @@ export const StudentTable: React.FC = () => {
                             type="text"
                             value={editingValue}
                             onChange={(e) => setEditingValue(e.target.value)}
-                            onBlur={saveInlineEdit}
+                            onBlur={saveInlineEditCallback}
                             onKeyDown={handleInlineEditKeyDown}
                             className="border-2 border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 text-sm font-semibold bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 min-w-0 w-auto"
                             autoFocus
@@ -1763,6 +1776,13 @@ export const StudentTable: React.FC = () => {
                     className="p-2 rounded-lg bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 hover:bg-orange-100 hover:text-orange-600 dark:hover:bg-orange-900/20 transition-all"
                   >
                     <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(student)}
+                    className="p-2 rounded-lg bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 transition-all"
+                    title="Delete"
+                  >
+                    <Trash className="w-4 h-4" />
                   </button>
                 </div>
                 
@@ -1941,6 +1961,15 @@ export const StudentTable: React.FC = () => {
             // Optimistically update the local state
           }
           
+          mutate();
+        }}
+      />
+
+      {/* Duplicates Manager */}
+      <DuplicatesManager
+        open={showDuplicatesManager}
+        onClose={() => setShowDuplicatesManager(false)}
+        onMergeComplete={() => {
           mutate();
         }}
       />
