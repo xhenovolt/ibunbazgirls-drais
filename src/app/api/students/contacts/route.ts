@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
         sc.contact_id,
         sc.relationship,
         sc.is_primary,
-        c.id as contact_id,
+        c.id,
         c.contact_type,
         c.occupation,
         c.alive_status,
@@ -85,10 +85,10 @@ export async function POST(req: NextRequest) {
       is_primary = 0
     } = body;
 
-    if (!student_id || !first_name || !last_name || !contact_type) {
+    if (!student_id || !first_name || !last_name || !phone || !contact_type) {
       return NextResponse.json({
         success: false,
-        error: 'Student ID, first name, last name, and contact type are required'
+        error: 'Student ID, first name, last name, phone number, and contact type are required'
       }, { status: 400 });
     }
 

@@ -75,14 +75,14 @@ export async function POST(req: NextRequest) {
 
       // Merge contacts and support data
       const [secondaryContacts]: any = await connection.execute(
-        `SELECT student_contact_id FROM student_contacts WHERE student_id = ?`,
+        `SELECT contact_id FROM student_contacts WHERE student_id = ?`,
         [secondary_id]
       );
 
       for (const contact of secondaryContacts || []) {
         await connection.execute(
-          `UPDATE student_contacts SET student_id = ? WHERE student_id = ? AND student_contact_id = ?`,
-          [primary_id, secondary_id, contact.student_contact_id]
+          `UPDATE student_contacts SET student_id = ? WHERE student_id = ? AND contact_id = ?`,
+          [primary_id, secondary_id, contact.contact_id]
         );
       }
 

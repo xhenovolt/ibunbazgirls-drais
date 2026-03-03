@@ -45,6 +45,7 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ open, onClose, onSucc
     if (!formData.student_id) newErrors.student_id = 'Student is required';
     if (!formData.first_name.trim()) newErrors.first_name = 'First name is required';
     if (!formData.last_name.trim()) newErrors.last_name = 'Last name is required';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
     if (!formData.contact_type) newErrors.contact_type = 'Contact type is required';
     if (!formData.relationship) newErrors.relationship = 'Relationship is required';
 
@@ -203,15 +204,18 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ open, onClose, onSucc
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Phone Number
+                Phone Number *
               </label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  errors.phone ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter phone number"
               />
+              {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>
 
             <div>
