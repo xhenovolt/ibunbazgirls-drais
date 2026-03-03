@@ -74,21 +74,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       student_id,
-      first_name,
-      last_name,
+      first_name = '',
+      last_name = '',
       phone,
-      email,
-      address,
-      contact_type,
-      occupation,
-      relationship,
+      email = '',
+      address = '',
+      contact_type = 'guardian',
+      occupation = '',
+      relationship = '',
       is_primary = 0
     } = body;
 
-    if (!student_id || !first_name || !last_name || !phone || !contact_type) {
+    // Only require student_id and phone for quick contact collection
+    if (!student_id || !phone) {
       return NextResponse.json({
         success: false,
-        error: 'Student ID, first name, last name, phone number, and contact type are required'
+        error: 'Student ID and phone number are required'
       }, { status: 400 });
     }
 
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Contact added successfully',
+        message: 'Phone number saved successfully',
         data: { contact_id: contactId }
       });
 
@@ -147,7 +148,7 @@ export async function POST(req: NextRequest) {
     console.error('Contact creation error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Failed to create contact'
+      error: 'Failed to save contact'
     }, { status: 500 });
   } finally {
     if (connection) await connection.end();
