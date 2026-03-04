@@ -112,14 +112,18 @@ export const StudentTable: React.FC = () => {
   const [photoEditorOpen, setPhotoEditorOpen] = useState(false);
   const [photoEditorStudent, setPhotoEditorStudent] = useState<Student | null>(null);
   const [fingerprintStatuses, setFingerprintStatuses] = useState<Record<number, {hasFingerprint: boolean, loading: boolean, lastFetched?: number}>>({});
-  const [dismissedDemoBanner, setDismissedDemoBanner] = useState(false);
   const [showDuplicatesManager, setShowDuplicatesManager] = useState(false);
-  
+
   // Inline editing state
   const [editingCell, setEditingCell] = useState<{studentId: number, field: 'first_name' | 'last_name'} | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
+  // Device ID editing state
+  const [deviceIdEditingCell, setDeviceIdEditingCell] = useState<{studentId: number} | null>(null);
+  const [deviceIdValue, setDeviceIdValue] = useState('');
+  const [isUpdatingDeviceId, setIsUpdatingDeviceId] = useState(false);
+
   const router = useRouter();
 
   // SWR Hook - define early so data is available for other functions
@@ -233,6 +237,24 @@ export const StudentTable: React.FC = () => {
     };
   }, [editingCell?.studentId, editingCell?.field, isUpdating]);
 
+  // Effect to handle clicking outside of device ID editing input
+  useEffect(() => {
+    if (!deviceIdEditingCell || isUpdatingDeviceId) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      // Check if the click is on an input or if we're in the middle of an update
+      if (!target.closest('input[type="number"]') && !target.closest('.device-id-edit-container')) {
+        saveDeviceIdCallback();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [deviceIdEditingCell?.studentId, isUpdatingDeviceId]);
+
   const { data: classData } = useSWRImmutable(`${API_BASE}/classes`, fetcher);
   const classOptions = classData?.data || [];
 
@@ -264,6 +286,88 @@ export const StudentTable: React.FC = () => {
     } else if (e.key === 'Escape') {
       e.preventDefault();
       cancelInlineEdit();
+    }
+  };
+
+  // Device ID editing functions
+  const startDeviceIdEdit = (studentId: number, currentValue: number) => {
+    if (isUpdatingDeviceId || deviceIdEditingCell) return;
+    setDeviceIdEditingCell({ studentId });
+    setDeviceIdValue(currentValue.toString());
+  };
+
+  const cancelDeviceIdEdit = () => {
+    setDeviceIdEditingCell(null);
+    setDeviceIdValue('');
+  };
+
+  const saveDeviceIdCallback = async () => {
+    if (!deviceIdEditingCell || isUpdatingDeviceId) return;
+
+    const student = rows.find(s => s.id === deviceIdEditingCell.studentId);
+    if (!student) return;
+
+    const newDeviceId = parseInt(deviceIdValue) || 0;
+    if (newDeviceId === (student.device_user_id || 0)) {
+      cancelDeviceIdEdit();
+      return;
+    }
+
+    setIsUpdatingDeviceId(true);
+
+    try {
+      if (newDeviceId === 0) {
+        // Delete device mapping
+        if (student.device_mapping_id) {
+          const response = await fetch(`/api/device-mappings/${student.device_mapping_id}`, {
+            method: 'DELETE'
+          });
+
+          if (!response.ok) throw new Error('Failed to delete device mapping');
+          toast.success('Device ID removed successfully');
+        }
+      } else {
+        // Update or create device mapping
+        if (student.device_mapping_id) {
+          // Update existing mapping
+          const response = await fetch(`/api/device-mappings/${student.device_mapping_id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              device_user_id: newDeviceId,
+              status: 'active'
+            })
+          });
+
+          if (!response.ok) throw new Error('Failed to update device mapping');
+          toast.success('Device ID updated successfully');
+        } else {
+          // Create new mapping - need device_id first
+          // For now, show error
+          toast.error('Please select a device first');
+          setIsUpdatingDeviceId(false);
+          return;
+        }
+      }
+
+      mutate();
+      cancelDeviceIdEdit();
+    } catch (error: any) {
+      console.error('Device ID update error:', error);
+      toast.error(`Failed to update device ID: ${error.message}`);
+      setDeviceIdValue(student.device_user_id?.toString() || '');
+    } finally {
+      setIsUpdatingDeviceId(false);
+    }
+  };
+
+  const handleDeviceIdKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveDeviceIdCallback();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelDeviceIdEdit();
     }
   };
 
@@ -1008,28 +1112,6 @@ export const StudentTable: React.FC = () => {
 
   return (
     <div className="space-y-3 p-4 sm:p-6 lg:p-8 gradient-bg min-h-screen">
-      {/* Add demo mode banner at the top if in development */}
-      {process.env.NODE_ENV !== 'production' && !dismissedDemoBanner && (
-        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                <strong>Demo Environment:</strong> Fingerprint features are accessible for demonstration. 
-                Real biometric capture is enabled but data is stored temporarily.
-              </p>
-            </div>
-            <button
-              onClick={() => setDismissedDemoBanner(true)}
-              className="ml-2 p-1 rounded-md text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors flex-shrink-0"
-              aria-label="Close demo banner"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Clean Header Section - SINGLE ROW on Desktop: Title | Search | Filters | Actions */}
       <div className="space-y-3">
         {/* Unified Header - All controls on one row (responsive: stacks on mobile) */}
@@ -1421,6 +1503,9 @@ export const StudentTable: React.FC = () => {
                 <th className="px-6 py-4 text-start text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Attendance
                 </th>
+                <th className="hidden sm:table-cell px-6 py-4 text-start text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Device ID
+                </th>
                 <th className="px-6 py-4 text-start text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
@@ -1432,7 +1517,7 @@ export const StudentTable: React.FC = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
               {isLoading && (
                 <tr key="loading-row">
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center">
                       <Loader2 className="w-8 h-8 animate-spin text-gradient mb-2" />
                       <span className="text-gray-500 dark:text-gray-400">{t('common.loading')}</span>
@@ -1440,10 +1525,10 @@ export const StudentTable: React.FC = () => {
                   </td>
                 </tr>
               )}
-              
+
               {!isLoading && paginatedRows.length === 0 && (
                 <tr key="no-data-row">
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center">
                       <Users className="w-12 h-12 text-gray-300 mb-2" />
                       <span className="text-gray-500 dark:text-gray-400">No students found</span>
@@ -1570,6 +1655,55 @@ export const StudentTable: React.FC = () => {
                       </div>
                     </div>
                   </td>
+                  <td className="hidden sm:table-cell px-6 py-4">
+                    <div className="text-sm text-gray-900 dark:text-white">
+                      {deviceIdEditingCell?.studentId === student.id ? (
+                        <div className="flex items-center gap-2 device-id-edit-container">
+                          <input
+                            type="number"
+                            value={deviceIdValue}
+                            onChange={(e) => setDeviceIdValue(e.target.value)}
+                            onBlur={saveDeviceIdCallback}
+                            onKeyDown={handleDeviceIdKeyDown}
+                            autoFocus
+                            disabled={isUpdatingDeviceId}
+                            className="border-2 border-blue-300 dark:border-blue-600 rounded px-2 py-1 text-sm w-24 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500"
+                            placeholder="Device ID"
+                          />
+                          {isUpdatingDeviceId && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                        </div>
+                      ) : (
+                        <>
+                          {student.device_user_id ? (
+                            <div className="flex items-center gap-2">
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                ID: {student.device_user_id}
+                              </span>
+                              <button
+                                onClick={() => startDeviceIdEdit(student.id, student.device_user_id || 0)}
+                                className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                                title="Edit Device ID"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startDeviceIdEdit(student.id, 0)}
+                              className="text-xs text-gray-400 hover:text-blue-600 hover:underline transition-colors"
+                            >
+                              + Assign Device ID
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {student.device_name && !deviceIdEditingCell?.studentId && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {student.device_name}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="relative">
                       <select
@@ -1584,7 +1718,7 @@ export const StudentTable: React.FC = () => {
                               setStatusAction('suspend');
                             } else if (newStatus === 'expelled') {
                               setStatusAction('expel');
-                            } 
+                            }
                             setStatusTargetStudent(student);
                             setStatusModalOpen(true);
                             return;

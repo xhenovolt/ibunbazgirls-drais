@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     connection = await getConnection();
 
-    // Enhanced query to include person_id and photo_url from people table
+    // Enhanced query to include person_id and photo_url from people table, and device_user_id
     let sql = `
       SELECT DISTINCT
         s.id,
@@ -51,14 +51,18 @@ export async function GET(req: NextRequest) {
         st.id as stream_id,
         d.name as district_name,
         v.name as village_name,
+        dum.device_user_id,
+        dum.id as device_mapping_id,
+        bd.device_name,
+        bd.id as device_id,
         -- Calculate attendance percentage
         COALESCE(
           (SELECT ROUND(
-            (COUNT(CASE WHEN sa.status = 'present' THEN 1 END) * 100.0) / 
+            (COUNT(CASE WHEN sa.status = 'present' THEN 1 END) * 100.0) /
             NULLIF(COUNT(*), 0), 2
-          ) 
-          FROM student_attendance sa 
-          WHERE sa.student_id = s.id 
+          )
+          FROM student_attendance sa
+          WHERE sa.student_id = s.id
           AND sa.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
           ), 0
         ) as attendance_percentage
@@ -72,10 +76,12 @@ export async function GET(req: NextRequest) {
       LEFT JOIN subcounties sc ON pa.subcounty_id = sc.id
       LEFT JOIN counties co ON sc.county_id = co.id
       LEFT JOIN districts d ON co.district_id = d.id
+      LEFT JOIN device_user_mappings dum ON s.id = dum.student_id AND dum.school_id = ?
+      LEFT JOIN biometric_devices bd ON dum.device_id = bd.id
       WHERE s.deleted_at IS NULL AND s.school_id = ?
     `;
 
-    const params: any[] = [schoolId];
+    const params: any[] = [schoolId, schoolId];
 
     // Add search filter with normalization
     if (query && query.trim()) {
