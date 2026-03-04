@@ -124,6 +124,11 @@ export const StudentTable: React.FC = () => {
   const [deviceIdValue, setDeviceIdValue] = useState('');
   const [isUpdatingDeviceId, setIsUpdatingDeviceId] = useState(false);
 
+  // Contact phone editing state
+  const [contactPhoneEditingCell, setContactPhoneEditingCell] = useState<{studentId: number} | null>(null);
+  const [contactPhoneValue, setContactPhoneValue] = useState('');
+  const [isUpdatingContactPhone, setIsUpdatingContactPhone] = useState(false);
+
   const router = useRouter();
 
   // SWR Hook - define early so data is available for other functions
@@ -255,6 +260,23 @@ export const StudentTable: React.FC = () => {
     };
   }, [deviceIdEditingCell?.studentId, isUpdatingDeviceId]);
 
+  // Effect to handle clicking outside of contact phone editing input
+  useEffect(() => {
+    if (!contactPhoneEditingCell || isUpdatingContactPhone) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('input[type="tel"]') && !target.closest('.contact-phone-edit-container')) {
+        saveContactPhoneCallback();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [contactPhoneEditingCell?.studentId, isUpdatingContactPhone]);
+
   const { data: classData } = useSWRImmutable(`${API_BASE}/classes`, fetcher);
   const classOptions = classData?.data || [];
 
@@ -327,27 +349,19 @@ export const StudentTable: React.FC = () => {
           toast.success('Device ID removed successfully');
         }
       } else {
-        // Update or create device mapping
-        if (student.device_mapping_id) {
-          // Update existing mapping
-          const response = await fetch(`/api/device-mappings/${student.device_mapping_id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              device_user_id: newDeviceId,
-              status: 'active'
-            })
-          });
+        // Create or update mapping using the by-device endpoint which auto-selects default device
+        const response = await fetch(`/api/device-mappings/by-device`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: student.id,
+            device_user_id: newDeviceId
+          })
+        });
 
-          if (!response.ok) throw new Error('Failed to update device mapping');
-          toast.success('Device ID updated successfully');
-        } else {
-          // Create new mapping - need device_id first
-          // For now, show error
-          toast.error('Please select a device first');
-          setIsUpdatingDeviceId(false);
-          return;
-        }
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to update device mapping');
+        toast.success('Device ID updated successfully');
       }
 
       mutate();
@@ -368,6 +382,72 @@ export const StudentTable: React.FC = () => {
     } else if (e.key === 'Escape') {
       e.preventDefault();
       cancelDeviceIdEdit();
+    }
+  };
+
+  // Contact phone editing functions
+  const startContactPhoneEdit = (studentId: number, currentPhone: string) => {
+    if (isUpdatingContactPhone || contactPhoneEditingCell) return;
+    setContactPhoneEditingCell({ studentId });
+    setContactPhoneValue(currentPhone || '');
+  };
+
+  const cancelContactPhoneEdit = () => {
+    setContactPhoneEditingCell(null);
+    setContactPhoneValue('');
+  };
+
+  const saveContactPhoneCallback = async () => {
+    if (!contactPhoneEditingCell || isUpdatingContactPhone) return;
+
+    const student = rows.find(s => s.id === contactPhoneEditingCell.studentId);
+    if (!student) return;
+
+    if (contactPhoneValue.trim() === (student.contact_phone || '')) {
+      cancelContactPhoneEdit();
+      return;
+    }
+
+    if (!contactPhoneValue.trim()) {
+      toast.error('Phone number cannot be empty');
+      setContactPhoneValue(student.contact_phone || '');
+      return;
+    }
+
+    setIsUpdatingContactPhone(true);
+
+    try {
+      const response = await fetch(`/api/students/${student.id}/primary-contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_phone: contactPhoneValue.trim(),
+          relationship: 'Guardian'
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to save contact');
+
+      toast.success('Contact phone updated successfully');
+      mutate();
+      cancelContactPhoneEdit();
+    } catch (error: any) {
+      console.error('Contact phone update error:', error);
+      toast.error(`Failed to update contact: ${error.message}`);
+      setContactPhoneValue(student.contact_phone || '');
+    } finally {
+      setIsUpdatingContactPhone(false);
+    }
+  };
+
+  const handleContactPhoneKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveContactPhoneCallback();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelContactPhoneEdit();
     }
   };
 
@@ -1506,6 +1586,9 @@ export const StudentTable: React.FC = () => {
                 <th className="hidden sm:table-cell px-6 py-4 text-start text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Device ID
                 </th>
+                <th className="hidden md:table-cell px-6 py-4 text-start text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Contact
+                </th>
                 <th className="px-6 py-4 text-start text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
@@ -1701,6 +1784,55 @@ export const StudentTable: React.FC = () => {
                     {student.device_name && !deviceIdEditingCell?.studentId && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {student.device_name}
+                      </div>
+                    )}
+                  </td>
+                  <td className="hidden md:table-cell px-6 py-4">
+                    <div className="text-sm text-gray-900 dark:text-white">
+                      {contactPhoneEditingCell?.studentId === student.id ? (
+                        <div className="flex items-center gap-2 contact-phone-edit-container">
+                          <input
+                            type="tel"
+                            value={contactPhoneValue}
+                            onChange={(e) => setContactPhoneValue(e.target.value)}
+                            onBlur={saveContactPhoneCallback}
+                            onKeyDown={handleContactPhoneKeyDown}
+                            autoFocus
+                            disabled={isUpdatingContactPhone}
+                            className="border-2 border-blue-300 dark:border-blue-600 rounded px-2 py-1 text-sm w-32 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500"
+                            placeholder="Phone"
+                          />
+                          {isUpdatingContactPhone && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                        </div>
+                      ) : (
+                        <>
+                          {student.contact_phone ? (
+                            <div className="flex items-center gap-2">
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                                {student.contact_phone}
+                              </span>
+                              <button
+                                onClick={() => startContactPhoneEdit(student.id, student.contact_phone || '')}
+                                className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                                title="Edit Contact"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startContactPhoneEdit(student.id, '')}
+                              className="text-xs text-gray-400 hover:text-green-600 hover:underline transition-colors"
+                            >
+                              + Add Contact
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {student.contact_name && !contactPhoneEditingCell?.studentId && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {student.contact_name}
                       </div>
                     )}
                   </td>

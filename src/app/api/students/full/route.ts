@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     connection = await getConnection();
 
-    // Enhanced query to include person_id and photo_url from people table, and device_user_id
+    // Enhanced query to include person_id and photo_url from people table, device_user_id, and primary contact info
     let sql = `
       SELECT DISTINCT
         s.id,
@@ -55,6 +55,11 @@ export async function GET(req: NextRequest) {
         dum.id as device_mapping_id,
         bd.device_name,
         bd.id as device_id,
+        -- Primary contact information
+        cp.phone as contact_phone,
+        CONCAT(cp.first_name, ' ', cp.last_name) as contact_name,
+        sc.relationship as contact_relationship,
+        ct.contact_type,
         -- Calculate attendance percentage
         COALESCE(
           (SELECT ROUND(
@@ -73,11 +78,14 @@ export async function GET(req: NextRequest) {
       LEFT JOIN streams st ON e.stream_id = st.id
       LEFT JOIN villages v ON s.village_id = v.id
       LEFT JOIN parishes pa ON v.parish_id = pa.id
-      LEFT JOIN subcounties sc ON pa.subcounty_id = sc.id
-      LEFT JOIN counties co ON sc.county_id = co.id
+      LEFT JOIN subcounties scc ON pa.subcounty_id = scc.id
+      LEFT JOIN counties co ON scc.county_id = co.id
       LEFT JOIN districts d ON co.district_id = d.id
       LEFT JOIN device_user_mappings dum ON s.id = dum.student_id AND dum.school_id = ?
       LEFT JOIN biometric_devices bd ON dum.device_id = bd.id
+      LEFT JOIN student_contacts sc ON s.id = sc.student_id AND sc.is_primary = 1
+      LEFT JOIN contacts ct ON sc.contact_id = ct.id
+      LEFT JOIN people cp ON ct.person_id = cp.id
       WHERE s.deleted_at IS NULL AND s.school_id = ?
     `;
 
