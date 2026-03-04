@@ -350,7 +350,7 @@ export const StudentTable: React.FC = () => {
         }
       } else {
         // Create or update mapping using the by-device endpoint which auto-selects default device
-        const response = await fetch(`/api/device-mappings/by-device`, {
+        const response = await fetch(`/api/device-mappings/by-device?school_id=1`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -417,7 +417,7 @@ export const StudentTable: React.FC = () => {
     setIsUpdatingContactPhone(true);
 
     try {
-      const response = await fetch(`/api/students/${student.id}/primary-contact`, {
+      const response = await fetch(`/api/students/${student.id}/primary-contact?school_id=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1600,7 +1600,7 @@ export const StudentTable: React.FC = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
               {isLoading && (
                 <tr key="loading-row">
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center">
                       <Loader2 className="w-8 h-8 animate-spin text-gradient mb-2" />
                       <span className="text-gray-500 dark:text-gray-400">{t('common.loading')}</span>
@@ -1611,7 +1611,7 @@ export const StudentTable: React.FC = () => {
 
               {!isLoading && paginatedRows.length === 0 && (
                 <tr key="no-data-row">
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center">
                       <Users className="w-12 h-12 text-gray-300 mb-2" />
                       <span className="text-gray-500 dark:text-gray-400">No students found</span>
@@ -1644,10 +1644,10 @@ export const StudentTable: React.FC = () => {
                     </button>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 min-w-0">
                       {getStudentAvatar(student)}
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                           {editingCell?.studentId === student.id && editingCell.field === 'first_name' ? (
                             <div className="flex items-center gap-1 inline-edit-container">
                               <input

@@ -15,6 +15,14 @@ export async function POST(
 
   try {
     const studentId = parseInt(params.studentId);
+
+    if (isNaN(studentId)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid student ID'
+      }, { status: 400 });
+    }
+
     const body = await req.json();
     const { contact_phone, contact_first_name = '', contact_last_name = '', relationship = 'Guardian' } = body;
 
