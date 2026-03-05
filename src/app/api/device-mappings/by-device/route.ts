@@ -19,12 +19,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { device_id, student_id, device_user_id } = body;
+    const { device_id, student_id, staff_id, device_user_id } = body;
+
+    // Determine the entity type and ID
+    const entityType = student_id ? 'student' : staff_id ? 'staff' : null;
+    const entityId = student_id || staff_id;
 
     // Validation
-    if (!student_id || !device_user_id) {
+    if (!entityId || !device_user_id) {
       return NextResponse.json(
-        { success: false, error: 'student_id and device_user_id are required' },
+        { success: false, error: 'Either student_id or staff_id, and device_user_id are required' },
         { status: 400 }
       );
     }
@@ -70,21 +74,39 @@ export async function POST(req: NextRequest) {
       // Verify student belongs to school
       const [studentCheck]: any = await connection.execute(
         `SELECT id FROM students WHERE id = ? AND school_id = ?`,
-        [student_id, tenant.school_id]
+        [entityId, tenant.school_id]
       );
 
-      if (studentCheck.length === 0) {
+      if (entityType === 'student' && studentCheck.length === 0) {
         return NextResponse.json(
           { success: false, error: 'Student not found in your school' },
           { status: 404 }
         );
       }
 
-      // Check for existing mapping for this student + device
+      // Verify staff belongs to school
+      if (entityType === 'staff') {
+        const [staffCheck]: any = await connection.execute(
+          `SELECT id FROM staff WHERE id = ? AND school_id = ?`,
+          [entityId, tenant.school_id]
+        );
+
+        if (staffCheck.length === 0) {
+          return NextResponse.json(
+            { success: false, error: 'Staff member not found in your school' },
+            { status: 404 }
+          );
+        }
+      }
+
+      // Check for existing mapping for this entity + device
+      const whereClause = entityType === 'student'
+        ? `device_id = ? AND student_id = ?`
+        : `device_id = ? AND staff_id = ?`;
+
       const [existing]: any = await connection.execute(
-        `SELECT id FROM device_user_mappings
-         WHERE device_id = ? AND student_id = ?`,
-        [finalDeviceId, student_id]
+        `SELECT id FROM device_user_mappings WHERE ${whereClause}`,
+        [finalDeviceId, entityId]
       );
 
       if (existing.length > 0) {
@@ -110,7 +132,7 @@ export async function POST(req: NextRequest) {
           data: {
             id: existing[0].id,
             device_id: finalDeviceId,
-            student_id,
+            ...(entityType === 'student' ? { student_id: entityId } : { staff_id: entityId }),
             device_user_id,
             status: 'active',
           },
@@ -125,18 +147,23 @@ export async function POST(req: NextRequest) {
       );
 
       if (duplicateCheck.length > 0) {
+        const entityName = entityType === 'student' ? 'student' : 'staff member';
         return NextResponse.json(
-          { success: false, error: 'This biometric ID is already assigned to another student on this device' },
+          { success: false, error: `This biometric ID is already assigned to another ${entityName} on this device` },
           { status: 409 }
         );
       }
 
       // Create new mapping
+      const columns = entityType === 'student'
+        ? '(school_id, device_id, student_id, device_user_id, status, mappings_sync_status)'
+        : '(school_id, device_id, staff_id, device_user_id, status, mappings_sync_status)';
+
       const [result]: any = await connection.execute(
         `INSERT INTO device_user_mappings
-         (school_id, device_id, student_id, device_user_id, status, mappings_sync_status)
+         ${columns}
          VALUES (?, ?, ?, ?, 'active', 'pending')`,
-        [tenant.school_id, finalDeviceId, student_id, device_user_id]
+        [tenant.school_id, finalDeviceId, entityId, device_user_id]
       );
 
       // Log activity
@@ -146,7 +173,7 @@ export async function POST(req: NextRequest) {
         'device_mapping',
         result.insertId,
         null,
-        { device_id: finalDeviceId, student_id, device_user_id }
+        { device_id: finalDeviceId, ...(entityType === 'student' ? { student_id: entityId } : { staff_id: entityId }), device_user_id }
       );
 
       return NextResponse.json({
@@ -154,7 +181,7 @@ export async function POST(req: NextRequest) {
         data: {
           id: result.insertId,
           device_id: finalDeviceId,
-          student_id,
+          ...(entityType === 'student' ? { student_id: entityId } : { staff_id: entityId }),
           device_user_id,
           status: 'active',
         },

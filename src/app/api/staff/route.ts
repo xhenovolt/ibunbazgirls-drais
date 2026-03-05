@@ -7,12 +7,9 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const schoolId = parseInt(searchParams.get('school_id') || '1');
-    const search = searchParams.get('search') || '';
-    const status = searchParams.get('status') || '';
-    const department = searchParams.get('department') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = (page - 1) * limit;
+    const offset = Math.max(0, (page - 1) * limit);
 
     connection = await getConnection();
 
@@ -39,27 +36,7 @@ export async function GET(req: NextRequest) {
       console.log('Note: Some staff table columns may already exist');
     }
 
-    let whereConditions = ['s.school_id = ?'];
-    let queryParams = [schoolId];
-
-    if (search) {
-      whereConditions.push('(p.first_name LIKE ? OR p.last_name LIKE ? OR s.staff_no LIKE ?)');
-      queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    if (status) {
-      whereConditions.push('s.status = ?');
-      queryParams.push(status);
-    }
-
-    if (department) {
-      whereConditions.push('s.department_id = ?');
-      queryParams.push(parseInt(department));
-    }
-
-    const whereClause = whereConditions.join(' AND ');
-
-    // First, get the basic staff data that we know exists
+    // Get basic staff data
     const [staffRows] = await connection.execute(`
       SELECT 
         s.id,
@@ -78,8 +55,8 @@ export async function GET(req: NextRequest) {
       JOIN people p ON s.person_id = p.id
       WHERE s.school_id = ? AND s.deleted_at IS NULL
       ORDER BY p.first_name, p.last_name
-      LIMIT ? OFFSET ?
-    `, [schoolId, limit, offset]);
+      LIMIT ?, ?
+    `, [schoolId, offset, limit]);
 
     // Count total records
     const [countRows] = await connection.execute(`

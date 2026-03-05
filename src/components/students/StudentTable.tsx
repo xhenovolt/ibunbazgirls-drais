@@ -341,7 +341,7 @@ export const StudentTable: React.FC = () => {
       if (newDeviceId === 0) {
         // Delete device mapping
         if (student.device_mapping_id) {
-          const response = await fetch(`/api/device-mappings/${student.device_mapping_id}`, {
+          const response = await fetch(`/api/device-mappings/${student.device_mapping_id}?school_id=1`, {
             method: 'DELETE'
           });
 

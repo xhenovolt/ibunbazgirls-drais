@@ -4,17 +4,17 @@ import { getConnection } from '@/lib/db';
 /**
  * Quick endpoint to create or update a student's primary contact by phone
  * This is used for inline contact editing in the student list
- * POST /api/students/[studentId]/primary-contact - Create/update primary contact
+ * POST /api/students/[id]/primary-contact - Create/update primary contact
  */
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: { id: string } }
 ) {
   let connection;
 
   try {
-    const studentId = parseInt(params.studentId);
+    const studentId = parseInt(params.id);
 
     if (isNaN(studentId)) {
       return NextResponse.json({

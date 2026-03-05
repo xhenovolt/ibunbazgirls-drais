@@ -125,7 +125,7 @@ const StaffListPage: React.FC = () => {
       if (newDeviceId === 0) {
         // Delete device mapping
         if (staffMember.device_mapping_id) {
-          const response = await fetch(`/api/device-mappings/${staffMember.device_mapping_id}`, {
+          const response = await fetch(`/api/device-mappings/${staffMember.device_mapping_id}?school_id=1`, {
             method: 'DELETE'
           });
 
@@ -136,7 +136,7 @@ const StaffListPage: React.FC = () => {
         // Update or create device mapping
         if (staffMember.device_mapping_id) {
           // Update existing mapping
-          const response = await fetch(`/api/device-mappings/${staffMember.device_mapping_id}`, {
+          const response = await fetch(`/api/device-mappings/${staffMember.device_mapping_id}?school_id=1`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -148,10 +148,19 @@ const StaffListPage: React.FC = () => {
           if (!response.ok) throw new Error('Failed to update device mapping');
           toast.success('Device ID updated successfully');
         } else {
-          // Create new mapping
-          toast.error('Please contact administrator to set up device first');
-          setIsUpdatingDeviceId(false);
-          return;
+          // Create new mapping using the by-device endpoint which auto-selects default device
+          const response = await fetch(`/api/device-mappings/by-device?school_id=1`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              staff_id: staffMember.id,
+              device_user_id: newDeviceId
+            })
+          });
+
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Failed to create device mapping');
+          toast.success('Device ID assigned successfully');
         }
       }
 
